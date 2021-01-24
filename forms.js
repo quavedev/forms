@@ -1,35 +1,12 @@
-import { Field, Form, Formik, useFormikContext } from "formik";
-import React, { createElement } from "react";
-import SimpleSchema from "simpl-schema";
+import { Field, Form as FormikForm, Formik, useFormikContext } from 'formik';
+import React, { createElement } from 'react';
+import SimpleSchema from 'simpl-schema';
 
 const defaultStyle = {
   formContainer: {
-    display: "flex",
-    flexDirection: "column",
-    padding: "1em",
-    justifyContent: "center"
+    display: 'grid',
+    gridGap: '1em',
   },
-  fieldContainer: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-start",
-    marginTop: "1em"
-  },
-  label: { width: "100%" },
-  field: { width: "100%", boxSizing: "border-box", marginTop: "0.5em" },
-  checkboxFieldContainer: {
-    display: "flex",
-    flexDirection: "row",
-    marginTop: "1em"
-  },
-  checkboxField: { boxSizing: "border-box", marginRight: "0.5em" },
-  buttonsContainer: {
-    alignSelf: "flex-end",
-    marginTop: "1em"
-  },
-  button: {
-    marginLeft: "1em"
-  }
 };
 
 // Get's the field name and definition and returns a formik compatible field
@@ -37,8 +14,8 @@ const defaultTypeToComponent = (name, fieldDefinition) => {
   if (fieldDefinition.allowedValues) {
     return props => (
       <>
-        <label style={defaultStyle.label}>{props.label}</label>
-        <Field style={defaultStyle.field} as="select" {...props}>
+        <label>{props.label}</label>
+        <Field as="select" {...props}>
           <option value="">Choose one {props.label}</option>
           {fieldDefinition.allowedValues.map(value => (
             <option key={`quaveform-${name}-option-${value}`} value={value}>
@@ -54,47 +31,43 @@ const defaultTypeToComponent = (name, fieldDefinition) => {
     case String:
       return props => (
         <>
-          <label style={defaultStyle.label}>{props.label}</label>
-          <Field style={defaultStyle.field} type="text" {...props} />
+          <label>{props.label}</label>
+          <Field type="text" {...props} />
         </>
       );
     case Number:
       return props => (
         <>
-          <label style={defaultStyle.label}>{props.label}</label>
-          <Field style={defaultStyle.field} type="number" {...props} />
+          <label>{props.label}</label>
+          <Field type="number" {...props} />
         </>
       );
     case SimpleSchema.Integer:
       return props => (
         <>
-          <label style={defaultStyle.label}>{props.label}</label>
-          <Field style={defaultStyle.field} type="number" step={1} {...props} />
+          <label>{props.label}</label>
+          <Field type="number" step={1} {...props} />
         </>
       );
     case Boolean:
       return props => (
-        <div style={defaultStyle.checkboxFieldContainer}>
-          <Field
-            style={defaultStyle.checkboxField}
-            type="checkbox"
-            {...props}
-          />
-          <label style={defaultStyle.label}>{props.label}</label>
+        <div>
+          <Field type="checkbox" {...props} />
+          <label>{props.label}</label>
         </div>
       );
     case Date:
       return props => (
         <>
-          <label style={defaultStyle.label}>{props.label}</label>
-          <Field style={defaultStyle.field} type="date" {...props} />
+          <label>{props.label}</label>
+          <Field type="date" {...props} />
         </>
       );
     default:
       return props => (
         <>
-          <label style={defaultStyle.label}>{props.label}</label>
-          <Field style={defaultStyle.field} type="text" {...props} />
+          <label>{props.label}</label>
+          <Field type="text" {...props} />
         </>
       );
   }
@@ -116,14 +89,14 @@ const defaultValidate = simpleSchema => values => {
 const defaultButtonComponent = props => <button {...props} />;
 
 const defaultOnSubmit = values =>
-  console.warn("No onSubmit implemented", values);
+  console.warn('No onSubmit implemented', values);
 
 // Get initial value from defaultValue if it's not present in initialValues
 const getInitialValues = (initialValues, definitionFields) =>
   Object.fromEntries(
     Object.entries(definitionFields).map(([name, fieldDefinition]) => [
       name,
-      initialValues[name] || fieldDefinition.defaultValue
+      initialValues[name] || fieldDefinition.defaultValue,
     ])
   );
 
@@ -138,9 +111,9 @@ const DebugComponent = () => {
   return (
     <pre
       style={{
-        textAlign: "left",
-        backgroundColor: "#eee",
-        padding: "1em"
+        textAlign: 'left',
+        backgroundColor: '#eee',
+        padding: '1em',
       }}
     >
       <code>{JSON.stringify(useFormikContext(), null, 2)}</code>
@@ -148,18 +121,19 @@ const DebugComponent = () => {
   );
 };
 
-export const Forms = ({
+export const Form = ({
   initialValues = {},
   onSubmit,
   definition,
   validate,
-  submitLabel = "SUBMIT",
+  submitLabel = 'SUBMIT',
   buttonComponent = defaultButtonComponent,
   typeToComponent = defaultTypeToComponent,
   actionButtons = [],
   autoClean = true,
   autoValidate = false,
   isDebug = false,
+  formClassName,
   ...props
 }) => {
   const simpleSchema = definition.toSimpleSchema();
@@ -171,28 +145,28 @@ export const Forms = ({
       validate={autoValidate ? defaultValidate(simpleSchema) : validate}
       {...props}
     >
-      <Form className="quaveform" style={defaultStyle.formContainer}>
+      <FormikForm className={formClassName}>
         {Object.entries(definition.fields).map(([name, fieldDefinition]) => {
           const component =
             typeToComponent(name, fieldDefinition) ||
             defaultTypeToComponent(name, fieldDefinition);
 
           return (
-            <div style={defaultStyle.fieldContainer} key={`quaveform-${name}`}>
-              {typeof component === "object"
+            <div key={`quaveform-${name}`}>
+              {typeof component === 'object'
                 ? component
                 : createElement(component, {
                     key: `quaveform-${name}`,
                     name,
-                    label: fieldDefinition.label
+                    label: fieldDefinition.label,
                   })}
             </div>
           );
         })}
 
-        <div style={defaultStyle.buttonsContainer}>
+        <div>
           {actionButtons.map(({ label, handler, ...props }) =>
-            typeof buttonComponent === "object"
+            typeof buttonComponent === 'object'
               ? buttonComponent
               : createElement(
                   buttonComponent,
@@ -203,28 +177,28 @@ export const Forms = ({
                       handler(e);
                     },
                     style: defaultStyle.button,
-                    className: "quaveform",
-                    ...props
+                    className: 'quaveform',
+                    ...props,
                   },
                   label
                 )
           )}
 
-          {typeof buttonComponent === "object"
+          {typeof buttonComponent === 'object'
             ? buttonComponent
             : createElement(
                 buttonComponent,
                 {
                   style: defaultStyle.button,
-                  className: "quaveform-submit-button",
-                  type: "submit"
+                  className: 'quaveform-submit-button',
+                  type: 'submit',
                 },
                 submitLabel
               )}
         </div>
 
         {isDebug && <DebugComponent />}
-      </Form>
+      </FormikForm>
     </Formik>
   );
 };
