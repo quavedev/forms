@@ -1,4 +1,4 @@
-# autoformik
+# quave:forms
 
 Quickly create a form by only passing it's `definition`. The definition object
 has to be created using our
@@ -21,7 +21,7 @@ Installation instructions [here](https://github.com/quavedev/definitions#install
 ## Installation
 
 ```bash
-meteor add quave:autoformik
+meteor add quave:forms
 ```
 
 ## Quickstart
@@ -31,14 +31,14 @@ prop and a definition to the `definition` prop. *Voilà*! You got yourself a
 form.
 
 ```javascript
-<AutoFormik
+<Form
   onSubmit={handleSubmit}
   initialValues={initialValues}
   definition={PlayerDefinition}
 />
 ```
 
-The `AutoFormik` component can accept any of the properties of the 
+The `Form` component can accept any of the properties of the 
 [Formik](https://formik.org/docs/api/formik) component, plus these:
 
 * `definition`: object definition from our
@@ -55,7 +55,7 @@ The `AutoFormik` component can accept any of the properties of the
   `label` will be passed as a child of the button component and `handler` is a
   function to be called when the `onClick` event is triggered. It calls
   `e.preventDefault()` before calling the handler.
-* `autoValidate`: defaults to `false`. Defines if `AutoFormik` should try to
+* `autoValidate`: defaults to `false`. Defines if `Form` should try to
   validate the inputs automatically based on the schema. It has some limitations
   with custom objects at the moment. It will work fine for simple definitions.
 * `autoClean`: defaults to `true`. Defines if we sohuld call Simple Schema's

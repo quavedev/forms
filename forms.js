@@ -41,7 +41,7 @@ const defaultTypeToComponent = (name, fieldDefinition) => {
         <Field style={defaultStyle.field} as="select" {...props}>
           <option value="">Choose one {props.label}</option>
           {fieldDefinition.allowedValues.map(value => (
-            <option key={`autoformik-${name}-option-${value}`} value={value}>
+            <option key={`quaveform-${name}-option-${value}`} value={value}>
               {value}
             </option>
           ))}
@@ -103,8 +103,6 @@ const defaultTypeToComponent = (name, fieldDefinition) => {
 const defaultValidate = simpleSchema => values => {
   const validationContext = simpleSchema.newContext();
 
-  console.log("VALIDATING: ", values);
-
   const cleanedValues = validationContext.clean(values);
   validationContext.validate(cleanedValues);
 
@@ -150,7 +148,7 @@ const DebugComponent = () => {
   );
 };
 
-export const AutoFormik = ({
+export const Forms = ({
   initialValues = {},
   onSubmit,
   definition,
@@ -173,22 +171,18 @@ export const AutoFormik = ({
       validate={autoValidate ? defaultValidate(simpleSchema) : validate}
       {...props}
     >
-      <Form className="autoformik-form" style={defaultStyle.formContainer}>
+      <Form className="quaveform" style={defaultStyle.formContainer}>
         {Object.entries(definition.fields).map(([name, fieldDefinition]) => {
           const component =
             typeToComponent(name, fieldDefinition) ||
             defaultTypeToComponent(name, fieldDefinition);
 
-          console.log({ component });
-
           return (
-            <div style={defaultStyle.fieldContainer} key={`autoformik-${name}`}>
-              {// One might want to pass a rendered component. With this we avoid
-              // An unexpected error
-              typeof component === "object"
+            <div style={defaultStyle.fieldContainer} key={`quaveform-${name}`}>
+              {typeof component === "object"
                 ? component
                 : createElement(component, {
-                    key: `autoformik-${name}`,
+                    key: `quaveform-${name}`,
                     name,
                     label: fieldDefinition.label
                   })}
@@ -203,13 +197,13 @@ export const AutoFormik = ({
               : createElement(
                   buttonComponent,
                   {
-                    key: `autoformik-action-${label}`,
+                    key: `quaveform-action-${label}`,
                     onClick: e => {
                       e.preventDefault();
                       handler(e);
                     },
                     style: defaultStyle.button,
-                    className: "autoformik-form",
+                    className: "quaveform",
                     ...props
                   },
                   label
@@ -222,7 +216,7 @@ export const AutoFormik = ({
                 buttonComponent,
                 {
                   style: defaultStyle.button,
-                  className: "autoformik-form-submit-button",
+                  className: "quaveform-submit-button",
                   type: "submit"
                 },
                 submitLabel
