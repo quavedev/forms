@@ -6,9 +6,23 @@ meteor package. This package serves *practicity*. If you wish to standardize the
 forms of your application or quickly make an admin dashboard, this is the
 package for you.
 
+## dependencies
+
+This package has these `npm` depencies. They're not enforced because this could
+cause [some problems](https://guide.meteor.com/writing-atmosphere-packages.html#peer-npm-dependencies).
+
+* `formik`
+* `react`
+* `simpl-schema`
+
+Also, it depends on the meteor package `quave:definitions`. 
+Installation instructions [here](https://github.com/quavedev/definitions#installation).
+
 ## installation
 
-`meteor add quave:autoformik`
+```bash
+meteor add quave:autoformik
+```
 
 ## Quickstart
 

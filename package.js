@@ -11,9 +11,3 @@ Package.onUse(api => {
 
   api.mainModule("autoformik.js");
 });
-
-Npm.depends({
-  formik: "^2.2.6",
-  react: "^17.0.1",
-  "simpl-schema": "^1.10.2"
-});
