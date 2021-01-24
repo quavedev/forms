@@ -1,0 +1,44 @@
+# autoformik
+
+Quickly create a form only passing it's `definition`. The definition object has
+to be created using our [definitions](https://github.com/quavedev/definitions)
+meteor package.
+
+## Quickstart
+
+Pass a handler to `onSubmit` prop, the initial values to the `initialValues`
+prop and a definition to the `definition` prop. *Voilà* you got yourself a form.  
+
+```javascript
+<AutoFormik
+  onSubmit={handleSubmit}
+  initialValues={initialValues}
+  definition={PlayerDefinition}
+/>
+```
+
+The `AutoFormik` component can accept any of the properties of the 
+[Formik](https://formik.org/docs/api/formik) component, plus these:
+
+* `definition`: object definition from our
+  [definitions](https://github.com/quavedev/definitions) package.
+* `submitLabel`: defaults to *SUBMIT*. It's used as child of the submit button.
+* `buttonComponent`: defaults to `<button />`. The component used for buttons.
+  `type="submit"` as prop.
+* `typeToComponent`: a function that receives `(name, fieldDefinition)` as 
+  arguments and return the component to be used for that field. 
+  `fieldDefinition` is the content of the `fields` property of the definition
+  passed as prop (`definition.fields`). 
+* `actionButtons`: defaults to `[]`. An array of objects with `label` and 
+  `handler` properties. `label` will be passed as a child of the button 
+  component and `handler` is a function to be called when the `onClick` event is
+  triggered. It calls `e.preventDefault()` before calling the handler.
+* `autoValidate`: defaults to `false`. Defines if `AutoFormik` should try to
+  validate the inputs automatically based on the schema. It has some limitations
+  with custom objects at the moment. It will work fine for simple definitions.
+* `autoClean`: defaults to `true`. Defines if we sohuld call Simple Schema's
+  [clean](https://github.com/aldeed/simpl-schema#explicitly-clean-an-object)
+  method before passing the fields to the `onSubmit` handler.
+* `isDebug`: defaults to `false`. When `true` draws the form state bellow it.
+
+

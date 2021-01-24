@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "@quave/eslint-config-quave": "^1.0.3"
+  }
+}
