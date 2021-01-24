@@ -1,13 +1,16 @@
 # autoformik
 
-Quickly create a form only passing it's `definition`. The definition object has
+Quickly create a by only passing it's `definition`. The definition object has
 to be created using our [definitions](https://github.com/quavedev/definitions)
-meteor package.
+meteor package. This package serves *practicity*. If you wish to standardize the
+forms of your application or quickly make an admin dashboard, this is the
+package for you.
 
 ## Quickstart
 
 Pass a handler to `onSubmit` prop, the initial values to the `initialValues`
-prop and a definition to the `definition` prop. *Voilà* you got yourself a form.  
+prop and a definition to the `definition` prop. *Voilà*! You got yourself a
+form.
 
 ```javascript
 <AutoFormik
