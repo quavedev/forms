@@ -8,6 +8,8 @@ Package.describe({
 Package.onUse(api => {
   api.versionsFrom("1.10.2");
   api.use("quave:definitions");
+
+  api.mainModule("autoformik.js");
 });
 
 Npm.depends({
