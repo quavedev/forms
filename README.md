@@ -72,13 +72,13 @@ The `Form` component can accept any of the properties of the
 
 If you pass `style` or `className`, it will be forwarded to the `form` component,
 working as the container for all fields and the buttons' container. Defining any
-of the "container" props will discard all our defaults, so you can style from
-scratch. If you feel like this should be different feel free to open an issue,
-so we can discuss it.
+of the "container" props will discard all our defaults, so you can layout and
+style from scratch. If you feel like this should be different feel free to open
+an issue, so we can discuss it.
 
-## Styling
+## Layout
 
-If you want to style your form I recommend using `grid` and `flex` on the
+If you want to layout your form I recommend using `grid` and `flex` on the
 available styles/classNames. This is not yet optimized to be an easy task, but
 you can do this once and apply to all your forms. Bellow is an example of how
 the props will look in the final HTML document.
@@ -114,7 +114,7 @@ the props will look in the final HTML document.
 </form>
 ```
 
-### Style Defaults
+### Default Layout
 
-Our default styles are decent (I think). You may take a look at the
+Our default layout is decent (I think). You may take a look at the
 `defaultStyles` object at the top of the `forms.js` file.
