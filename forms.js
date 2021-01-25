@@ -2,10 +2,26 @@ import { Field, Form as FormikForm, Formik, useFormikContext } from 'formik';
 import React, { createElement } from 'react';
 import SimpleSchema from 'simpl-schema';
 
-const defaultStyle = {
-  formContainer: {
+const defaultStyles = {
+  form: {
+    padding: '1em',
     display: 'grid',
     gridGap: '1em',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+  },
+  fieldContainer: {
+    gridColumn: '1/-1',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5em',
+  },
+  buttonsContainer: {
+    marginTop: '1em',
+    gridColumn: '1/-1',
+    display: 'flex',
+    flexDirection: 'row',
+    gap: '1em',
+    justifyContent: 'flex-end',
   },
 };
 
@@ -133,7 +149,12 @@ export const Form = ({
   autoClean = true,
   autoValidate = false,
   isDebug = false,
-  formClassName,
+  style,
+  className,
+  fieldContainerStyle,
+  fieldContainerClassName,
+  buttonsContainerStyle,
+  buttonsContainerClassName,
   ...props
 }) => {
   const simpleSchema = definition.toSimpleSchema();
@@ -145,14 +166,18 @@ export const Form = ({
       validate={autoValidate ? defaultValidate(simpleSchema) : validate}
       {...props}
     >
-      <FormikForm className={formClassName}>
+      <FormikForm className={className} style={style || defaultStyles.form}>
         {Object.entries(definition.fields).map(([name, fieldDefinition]) => {
           const component =
             typeToComponent(name, fieldDefinition) ||
             defaultTypeToComponent(name, fieldDefinition);
 
           return (
-            <div key={`quaveform-${name}`}>
+            <div
+              key={`quaveform-${name}`}
+              style={fieldContainerStyle || defaultStyles.fieldContainer}
+              className={fieldContainerClassName}
+            >
               {typeof component === 'object'
                 ? component
                 : createElement(component, {
@@ -164,7 +189,10 @@ export const Form = ({
           );
         })}
 
-        <div>
+        <div
+          style={buttonsContainerStyle || defaultStyles.buttonsContainer}
+          className={buttonsContainerClassName}
+        >
           {actionButtons.map(({ label, handler, ...props }) =>
             typeof buttonComponent === 'object'
               ? buttonComponent
@@ -176,7 +204,6 @@ export const Form = ({
                       e.preventDefault();
                       handler(e);
                     },
-                    style: defaultStyle.button,
                     className: 'quaveform',
                     ...props,
                   },
@@ -189,7 +216,6 @@ export const Form = ({
             : createElement(
                 buttonComponent,
                 {
-                  style: defaultStyle.button,
                   className: 'quaveform-submit-button',
                   type: 'submit',
                 },
