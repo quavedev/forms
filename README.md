@@ -59,9 +59,9 @@ The `Form` component can accept any of the properties of the
 * `autoValidate`: defaults to `false`. Defines if `Form` should try to validate
   the inputs automatically based on the schema. It has some limitations with
   custom objects at the moment. It will work fine for simple definitions.
-* `autoClean`: defaults to `true`. Defines if we sohuld call Simple Schema's
+* `autoClean`: defaults to `true`. Defines if we should call Simple Schema's
   [clean](https://github.com/aldeed/simpl-schema#explicitly-clean-an-object)
-  method before passing the fields to the `onSubmit` handler.
+  method before passing the values to the `onSubmit` handler.
 * `isDebug`: defaults to `false`. When `true`, draws the form state bellow it
   for debugging purposes.
 * `fieldContainerStyle`: style passed to a `div` that encloses each field.
@@ -117,4 +117,4 @@ the props will look in the final HTML document.
 ### Default Layout
 
 Our default layout is decent (I think). You may take a look at the
-`defaultStyles` object at the top of the `forms.js` file.
+`defaultStyles` object at the top of the `Form.js` file.

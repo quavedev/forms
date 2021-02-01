@@ -116,9 +116,18 @@ const getInitialValues = (initialValues, definitionFields) =>
     ])
   );
 
-const getOnSubmit = (onSubmit, simpleSchema, autoClean) => rawValues => {
-  const values =
-    simpleSchema && autoClean ? simpleSchema.clean(rawValues) : rawValues;
+const getOnSubmit = (
+  onSubmit,
+  simpleSchema,
+  autoClean,
+  initialValues
+) => rawValues => {
+  // We want to use clean to do conversions (e.g. date strings to Date), but
+  // keep excess values passed
+  const values = {
+    ...initialValues,
+    ...(simpleSchema && autoClean ? simpleSchema.clean(rawValues) : rawValues),
+  };
 
   return onSubmit ? onSubmit(values) : defaultOnSubmit(values);
 };
@@ -134,6 +143,59 @@ const DebugComponent = () => {
     >
       <code>{JSON.stringify(useFormikContext(), null, 2)}</code>
     </pre>
+  );
+};
+
+const Buttons = ({
+  initialValues,
+  actionButtons,
+  buttonComponent,
+  style,
+  className,
+  submitLabel,
+}) => {
+  const context = useFormikContext();
+
+  return (
+    <div
+      style={{ ...defaultStyles.buttonsContainer, ...style }}
+      className={className}
+    >
+      {actionButtons.map(({ label, handler, shouldBeVisible, ...props }) => {
+        const values = { ...initialValues, ...context.values };
+
+        if (shouldBeVisible && !shouldBeVisible(values)) {
+          return null;
+        }
+
+        return typeof buttonComponent === 'object'
+          ? buttonComponent
+          : createElement(
+              buttonComponent,
+              {
+                key: `quaveform-action-${label}`,
+                onClick: e => {
+                  e.preventDefault();
+                  handler(values, e);
+                },
+                className: 'quaveform',
+                ...props,
+              },
+              label
+            );
+      })}
+
+      {typeof buttonComponent === 'object'
+        ? buttonComponent
+        : createElement(
+            buttonComponent,
+            {
+              className: 'quaveform-submit-button',
+              type: 'submit',
+            },
+            submitLabel
+          )}
+    </div>
   );
 };
 
@@ -155,6 +217,7 @@ export const Form = ({
   fieldContainerClassName,
   buttonsContainerStyle,
   buttonsContainerClassName,
+  onClick,
   ...props
 }) => {
   const simpleSchema = definition.toSimpleSchema();
@@ -162,11 +225,15 @@ export const Form = ({
   return (
     <Formik
       initialValues={getInitialValues(initialValues, definition.fields)}
-      onSubmit={getOnSubmit(onSubmit, simpleSchema, autoClean)}
+      onSubmit={getOnSubmit(onSubmit, simpleSchema, autoClean, initialValues)}
       validate={autoValidate ? defaultValidate(simpleSchema) : validate}
       {...props}
     >
-      <FormikForm className={className} style={style || defaultStyles.form}>
+      <FormikForm
+        className={className}
+        style={{ ...defaultStyles.form, ...style }}
+        onClick={onClick}
+      >
         {Object.entries(definition.fields).map(([name, fieldDefinition]) => {
           const component =
             typeToComponent(name, fieldDefinition) ||
@@ -175,7 +242,10 @@ export const Form = ({
           return (
             <div
               key={`quaveform-${name}`}
-              style={fieldContainerStyle || defaultStyles.fieldContainer}
+              style={{
+                ...defaultStyles.fieldContainer,
+                ...fieldContainerStyle,
+              }}
               className={fieldContainerClassName}
             >
               {typeof component === 'object'
@@ -189,39 +259,14 @@ export const Form = ({
           );
         })}
 
-        <div
-          style={buttonsContainerStyle || defaultStyles.buttonsContainer}
+        <Buttons
+          style={buttonsContainerStyle}
           className={buttonsContainerClassName}
-        >
-          {actionButtons.map(({ label, handler, ...props }) =>
-            typeof buttonComponent === 'object'
-              ? buttonComponent
-              : createElement(
-                  buttonComponent,
-                  {
-                    key: `quaveform-action-${label}`,
-                    onClick: e => {
-                      e.preventDefault();
-                      handler(e);
-                    },
-                    className: 'quaveform',
-                    ...props,
-                  },
-                  label
-                )
-          )}
-
-          {typeof buttonComponent === 'object'
-            ? buttonComponent
-            : createElement(
-                buttonComponent,
-                {
-                  className: 'quaveform-submit-button',
-                  type: 'submit',
-                },
-                submitLabel
-              )}
-        </div>
+          actionButtons={actionButtons}
+          buttonComponent={buttonComponent}
+          submitLabel={submitLabel}
+          initialValues={initialValues}
+        />
 
         {isDebug && <DebugComponent />}
       </FormikForm>
