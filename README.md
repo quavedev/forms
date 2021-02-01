@@ -32,6 +32,10 @@ prop and a definition to the `definition` prop. *Voilà*! You got yourself a
 form.
 
 ```javascript
+// Import
+import { Form } from 'meteor/quave:forms';
+
+// Use the Form component
 <Form
   onSubmit={handleSubmit}
   initialValues={initialValues}
