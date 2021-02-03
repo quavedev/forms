@@ -197,6 +197,7 @@ const Buttons = ({
  * Create a form automatically passing it's definition.
  * @param initialValues
  * @param definition
+ * @param fields
  * @param onSubmit
  * @param onClick
  * @param submitLabel
@@ -220,6 +221,7 @@ const Buttons = ({
 export const Form = ({
   initialValues = {},
   definition,
+  fields: fieldsInput,
   onSubmit,
   onClick,
   submitLabel = 'SUBMIT',
@@ -238,13 +240,17 @@ export const Form = ({
   isDebug = false,
   ...props
 }) => {
-  const simpleSchema = definition.toSimpleSchema();
+  const simpleSchema = definition?.toSimpleSchema();
+
+  const fields = definition?.fields || fieldsInput;
 
   return (
     <Formik
-      initialValues={getInitialValues(initialValues, definition.fields)}
+      initialValues={getInitialValues(initialValues, fields)}
       onSubmit={getOnSubmit(onSubmit, simpleSchema, autoClean, initialValues)}
-      validate={autoValidate ? defaultValidate(simpleSchema) : validate}
+      validate={
+        autoValidate && simpleSchema ? defaultValidate(simpleSchema) : validate
+      }
       {...props}
     >
       <FormikForm
@@ -252,7 +258,7 @@ export const Form = ({
         className={className}
         onClick={onClick}
       >
-        {Object.entries(definition.fields).map(([name, fieldDefinition]) => {
+        {Object.entries(fields).map(([name, fieldDefinition]) => {
           // If you capitalize the first letter you can just <Component />
           const Component =
             definitionToComponent(fieldDefinition, name) ||

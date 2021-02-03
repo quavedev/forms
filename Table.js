@@ -55,8 +55,8 @@ export const Table = ({
               key
             );
 
-            // Return only values that are not null or undefined
-            return [key, value == null ? rawValue : value];
+            // Return value only if it's not null or undefined
+            return [key, value ?? rawValue];
           })
         )
       )
@@ -166,6 +166,7 @@ export const Table = ({
             top: 0,
             left: 0,
             backgroundColor: 'rgba(0,0,0, 0.7)',
+            backdropFilter: 'blur(2px)',
           }}
         >
           <Form
@@ -176,10 +177,10 @@ export const Table = ({
                 ? values.map(value => {
                     const transformedValue = transformAfterUse(values);
 
-                    return transformedValue == null ? value : transformedValue;
+                    return transformedValue ?? value;
                   })
                 : values;
-              onSubmit(transformedValues == null ? values : transformedValues);
+              onSubmit(transformedValues);
               closeForm();
             }}
             style={{ backgroundColor: '#fff', padding: '16px' }}
