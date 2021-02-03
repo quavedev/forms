@@ -26,7 +26,7 @@ const defaultStyles = {
 };
 
 // Get's the field name and definition and returns a formik compatible field
-const defaultTypeToComponent = (name, fieldDefinition) => {
+const defaultDefinitionToComponent = (fieldDefinition, name) => {
   if (fieldDefinition.allowedValues) {
     return props => (
       <>
@@ -102,7 +102,7 @@ const defaultValidate = simpleSchema => values => {
   );
 };
 
-const defaultButtonComponent = props => <button {...props} />;
+const DefaultButtonComponent = props => <button {...props} />;
 
 const defaultOnSubmit = values =>
   console.warn('No onSubmit implemented', values);
@@ -149,7 +149,7 @@ const DebugComponent = () => {
 const Buttons = ({
   initialValues,
   actionButtons,
-  buttonComponent,
+  buttonComponent: ButtonComponent,
   style,
   className,
   submitLabel,
@@ -168,56 +168,74 @@ const Buttons = ({
           return null;
         }
 
-        return typeof buttonComponent === 'object'
-          ? buttonComponent
-          : createElement(
-              buttonComponent,
-              {
-                key: `quaveform-action-${label}`,
-                onClick: e => {
-                  e.preventDefault();
-                  handler(values, e);
-                },
-                className: 'quaveform',
-                ...props,
-              },
-              label
-            );
+        return typeof ButtonComponent === 'object' ? (
+          ButtonComponent
+        ) : (
+          <ButtonComponent
+            key={`quaveform-action-${label}`}
+            onClick={e => {
+              e.preventDefault();
+              handler(values, e);
+            }}
+            {...props}
+          >
+            {label}
+          </ButtonComponent>
+        );
       })}
 
-      {typeof buttonComponent === 'object'
-        ? buttonComponent
-        : createElement(
-            buttonComponent,
-            {
-              className: 'quaveform-submit-button',
-              type: 'submit',
-            },
-            submitLabel
-          )}
+      {typeof ButtonComponent === 'object' ? (
+        ButtonComponent
+      ) : (
+        <ButtonComponent type="submit">{submitLabel}</ButtonComponent>
+      )}
     </div>
   );
 };
 
+/**
+ * Create a form automatically passing it's definition.
+ * @param initialValues
+ * @param definition
+ * @param onSubmit
+ * @param onClick
+ * @param submitLabel
+ * @param definitionToComponent
+ * @param buttonComponent
+ * @param actionButtons
+ * @param validate
+ * @param autoValidate
+ * @param autoClean
+ * @param style
+ * @param className
+ * @param fieldContainerStyle
+ * @param fieldContainerClassName
+ * @param buttonsContainerStyle
+ * @param buttonsContainerClassName
+ * @param isDebug
+ * @param props
+ * @returns {JSX.Element}
+ * @constructor
+ */
 export const Form = ({
   initialValues = {},
-  onSubmit,
   definition,
-  validate,
+  onSubmit,
+  onClick,
   submitLabel = 'SUBMIT',
-  buttonComponent = defaultButtonComponent,
-  typeToComponent = defaultTypeToComponent,
+  definitionToComponent = defaultDefinitionToComponent,
+  buttonComponent = DefaultButtonComponent,
   actionButtons = [],
-  autoClean = true,
+  validate,
   autoValidate = false,
-  isDebug = false,
+  autoClean = true,
   style,
   className,
   fieldContainerStyle,
   fieldContainerClassName,
   buttonsContainerStyle,
   buttonsContainerClassName,
-  onClick,
+  isDebug = false,
   ...props
 }) => {
   const simpleSchema = definition.toSimpleSchema();
@@ -230,14 +248,15 @@ export const Form = ({
       {...props}
     >
       <FormikForm
-        className={className}
         style={{ ...defaultStyles.form, ...style }}
+        className={className}
         onClick={onClick}
       >
         {Object.entries(definition.fields).map(([name, fieldDefinition]) => {
-          const component =
-            typeToComponent(name, fieldDefinition) ||
-            defaultTypeToComponent(name, fieldDefinition);
+          // If you capitalize the first letter you can just <Component />
+          const Component =
+            definitionToComponent(fieldDefinition, name) ||
+            defaultDefinitionToComponent(fieldDefinition, name);
 
           return (
             <div
@@ -248,13 +267,15 @@ export const Form = ({
               }}
               className={fieldContainerClassName}
             >
-              {typeof component === 'object'
-                ? component
-                : createElement(component, {
-                    key: `quaveform-${name}`,
-                    name,
-                    label: fieldDefinition.label,
-                  })}
+              {typeof Component === 'object' ? (
+                Component
+              ) : (
+                <Component
+                  key={`quaveform-${name}`}
+                  name={name}
+                  label={fieldDefinition.label}
+                />
+              )}
             </div>
           );
         })}

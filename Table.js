@@ -18,17 +18,58 @@ const defaultStyles = {
   td: { padding: '8px', border: '1px solid #ddd', margin: '0px' },
 };
 
+/**
+ * Build a complete CRUD table just from the values and their definition.
+ * @param definition
+ * @param values
+ * @param format
+ * @param columns
+ * @param onSubmit
+ * @param formProps
+ * @param cancelButtonLabel
+ * @param transformBeforeUse
+ * @param transformAfterUse
+ * @returns {JSX.Element}
+ * @constructor
+ */
 export const Table = ({
   definition,
-  values = [],
-  columns,
+  objects: rawObjects = [],
   format = () => {},
+  pickColumns,
+  omitColumns,
   onSubmit,
-  formProps = {},
+  formProps: rawFormProps = {},
   cancelButtonLabel = 'CANCEL',
+  transformBeforeUse,
+  transformAfterUse,
+  component: TableComponent,
 }) => {
+  const objects = transformBeforeUse
+    ? rawObjects.map(object =>
+        Object.fromEntries(
+          Object.entries(object).map(([key, rawValue]) => {
+            const value = transformBeforeUse(
+              rawValue,
+              definition.fields[key],
+              key
+            );
+
+            // Return only values that are not null or undefined
+            return [key, value == null ? rawValue : value];
+          })
+        )
+      )
+    : { ...rawObjects };
   const [editingObject, setEditingObject] = useState(null);
-  const columnNames = columns || Object.keys(values[0] || {});
+
+  if (omitColumns) {
+    omitColumns.forEach(columnName =>
+      objects.map(object => delete object[columnName])
+    );
+  }
+
+  const columnNames = pickColumns || Object.keys(objects[0] || {});
 
   const handleRowClick = data => {
     setEditingObject(
@@ -39,10 +80,10 @@ export const Table = ({
   const closeForm = () => setEditingObject(null);
 
   // Inject Cancel button
-  const newFormProps = {
-    ...formProps,
+  const formProps = {
+    ...rawFormProps,
     actionButtons: [
-      ...(formProps.actionButtons || []).map(actionButton => ({
+      ...(rawFormProps.actionButtons || []).map(actionButton => ({
         ...actionButton,
         handler: values => {
           closeForm();
@@ -56,6 +97,20 @@ export const Table = ({
     ],
   };
 
+  if (TableComponent) {
+    const rowData =
+      TableComponent &&
+      objects.map((object, index) =>
+        columnNames.map(key => ({
+          edit: () => setEditingObject(object),
+          values:
+            format(object[key], definition.fields[key], key) || object[key],
+        }))
+      );
+
+    return <TableComponent columnNames={columnNames} rowData={rowData} />;
+  }
+
   return (
     <>
       <table style={defaultStyles.table}>
@@ -66,20 +121,22 @@ export const Table = ({
                 key={`table-header-${name}-${index}`}
                 style={defaultStyles.th}
               >
-                {name}
+                {definition.fields[name]?.label || name}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {values.map((data, index) => (
+          {objects.map((object, index) => (
             <tr
               key={`table-row-${index}`}
-              onClick={() => handleRowClick(data)}
+              onClick={() => handleRowClick(object)}
               style={defaultStyles.tr}
             >
               {columnNames.map(key => {
-                const formattedValue = format(key, data[key]) || data[key];
+                const formattedValue =
+                  format(object[key], definition.fields[key], key) ||
+                  object[key];
                 return (
                   <td
                     key={`table-cell-${formattedValue}-${index}`}
@@ -115,12 +172,19 @@ export const Table = ({
             initialValues={editingObject}
             definition={definition}
             onSubmit={values => {
-              onSubmit(values);
+              const transformedValues = transformAfterUse
+                ? values.map(value => {
+                    const transformedValue = transformAfterUse(values);
+
+                    return transformedValue == null ? value : transformedValue;
+                  })
+                : values;
+              onSubmit(transformedValues == null ? values : transformedValues);
               closeForm();
             }}
             style={{ backgroundColor: '#fff', padding: '16px' }}
             onClick={event => event.stopPropagation()}
-            {...newFormProps}
+            {...formProps}
           />
         </div>
       )}

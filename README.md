@@ -51,8 +51,8 @@ The `Form` component can accept any of the properties of the
 * `submitLabel`: defaults to *SUBMIT*. It's used as child of the submit button.
 * `buttonComponent`: defaults to `<button />`. The component used for buttons.
   `type="submit"` is passed as prop.
-* `typeToComponent`: a function that receives `(name, fieldDefinition)` as
-  arguments and return a
+* `definitionToComponent`: a function that receives `(fieldDefinition,
+  fieldName)` as arguments and return a
   [Formik compatible](https://formik.org/docs/api/field#component) component to
   be used for that field. `fieldDefinition` is the content of the `fields`
   property of the definition passed as prop (`definition.fields`).
@@ -74,11 +74,8 @@ The `Form` component can accept any of the properties of the
 * `buttonsContainerClassName`: class passed to a `div` that encloses all
   buttons.
 
-If you pass `style` or `className`, it will be forwarded to the `form` component,
-working as the container for all fields and the buttons' container. Defining any
-of the "container" props will discard all our defaults, so you can layout and
-style from scratch. If you feel like this should be different feel free to open
-an issue, so we can discuss it.
+If you pass `style` or `className`, it will be forwarded to the `form`
+component, working as the container for all fields and the buttons' container.
 
 ## Layout
 
