@@ -1,5 +1,5 @@
 import { Field, Form as FormikForm, Formik, useFormikContext } from 'formik';
-import React, { createElement } from 'react';
+import React from 'react';
 import SimpleSchema from 'simpl-schema';
 
 const defaultStyles = {
@@ -7,7 +7,7 @@ const defaultStyles = {
     padding: '1em',
     display: 'grid',
     gridGap: '1em',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+    gridTemplateColumns: '1fr',
   },
   fieldContainer: {
     gridColumn: '1/-1',
@@ -15,7 +15,7 @@ const defaultStyles = {
     flexDirection: 'column',
     gap: '0.5em',
   },
-  buttonsContainer: {
+  actionsContainer: {
     marginTop: '1em',
     gridColumn: '1/-1',
     display: 'flex',
@@ -102,26 +102,24 @@ const defaultValidate = simpleSchema => values => {
   );
 };
 
-const DefaultButtonComponent = props => <button {...props} />;
+const DefaultSubmitComponent = props => <button {...props} />;
 
 const defaultOnSubmit = values =>
   console.warn('No onSubmit implemented', values);
 
 // Get initial value from defaultValue if it's not present in initialValues
-const getInitialValues = (initialValues, definitionFields) =>
+const getInitialValues = (initialValues, fields) =>
   Object.fromEntries(
-    Object.entries(definitionFields).map(([name, fieldDefinition]) => [
+    Object.entries(fields).map(([name, fieldDefinition]) => [
       name,
-      initialValues[name] || fieldDefinition.defaultValue,
+      initialValues[name] || fieldDefinition.defaultValue || '',
     ])
   );
 
-const getOnSubmit = (
-  onSubmit,
-  simpleSchema,
-  autoClean,
-  initialValues
-) => rawValues => {
+const getOnSubmit = (onSubmit, simpleSchema, autoClean, initialValues) => (
+  rawValues,
+  actions
+) => {
   // We want to use clean to do conversions (e.g. date strings to Date), but
   // keep excess values passed
   const values = {
@@ -129,66 +127,79 @@ const getOnSubmit = (
     ...(simpleSchema && autoClean ? simpleSchema.clean(rawValues) : rawValues),
   };
 
-  return onSubmit ? onSubmit(values) : defaultOnSubmit(values);
+  return onSubmit
+    ? onSubmit(values, actions)
+    : defaultOnSubmit(values, actions);
 };
 
 const DebugComponent = () => {
+  const context = useFormikContext();
+  console.debug('FORMIK CONTEXT', context);
+
   return (
     <pre
       style={{
         textAlign: 'left',
         backgroundColor: '#eee',
         padding: '1em',
+        gridColumn: '1/-1',
       }}
     >
-      <code>{JSON.stringify(useFormikContext(), null, 2)}</code>
+      <code>{JSON.stringify(context, null, 2)}</code>
     </pre>
   );
 };
 
-const Buttons = ({
+const Actions = ({
   initialValues,
-  actionButtons,
-  buttonComponent: ButtonComponent,
+  actions,
+  submitComponent: SubmitComponent,
   style,
   className,
   submitLabel,
+  hideSubmit,
 }) => {
   const context = useFormikContext();
 
   return (
     <div
-      style={{ ...defaultStyles.buttonsContainer, ...style }}
+      style={
+        className ? undefined : { ...defaultStyles.actionsContainer, ...style }
+      }
       className={className}
     >
-      {actionButtons.map(({ label, handler, shouldBeVisible, ...props }) => {
-        const values = { ...initialValues, ...context.values };
+      {actions.map(
+        ({ label, handler, shouldBeVisible, component, ...props }) => {
+          const values = { ...initialValues, ...context.values };
+          const Component = component || SubmitComponent;
 
-        if (shouldBeVisible && !shouldBeVisible(values)) {
-          return null;
+          if (shouldBeVisible && !shouldBeVisible(values)) {
+            return null;
+          }
+
+          return React.isValidElement(Component) ? (
+            Component
+          ) : (
+            <Component
+              key={`quaveform-action-${label}`}
+              onClick={e => {
+                e.preventDefault();
+                handler(values, context, e);
+              }}
+              {...props}
+            >
+              {label}
+            </Component>
+          );
         }
-
-        return typeof ButtonComponent === 'object' ? (
-          ButtonComponent
-        ) : (
-          <ButtonComponent
-            key={`quaveform-action-${label}`}
-            onClick={e => {
-              e.preventDefault();
-              handler(values, e);
-            }}
-            {...props}
-          >
-            {label}
-          </ButtonComponent>
-        );
-      })}
-
-      {typeof ButtonComponent === 'object' ? (
-        ButtonComponent
-      ) : (
-        <ButtonComponent type="submit">{submitLabel}</ButtonComponent>
       )}
+
+      {!hideSubmit &&
+        (React.isValidElement(SubmitComponent) ? (
+          SubmitComponent
+        ) : (
+          <SubmitComponent type="submit">{submitLabel}</SubmitComponent>
+        ))}
     </div>
   );
 };
@@ -202,8 +213,8 @@ const Buttons = ({
  * @param onClick
  * @param submitLabel
  * @param definitionToComponent
- * @param buttonComponent
- * @param actionButtons
+ * @param submitComponent
+ * @param actions
  * @param validate
  * @param autoValidate
  * @param autoClean
@@ -211,8 +222,8 @@ const Buttons = ({
  * @param className
  * @param fieldContainerStyle
  * @param fieldContainerClassName
- * @param buttonsContainerStyle
- * @param buttonsContainerClassName
+ * @param actionsContainerStyle
+ * @param actionsContainerClassName
  * @param isDebug
  * @param props
  * @returns {JSX.Element}
@@ -222,12 +233,15 @@ export const Form = ({
   initialValues = {},
   definition,
   fields: fieldsInput,
+  omitFields,
+  pickFields,
   onSubmit,
   onClick,
   submitLabel = 'SUBMIT',
+  hideSubmit = false,
   definitionToComponent = defaultDefinitionToComponent,
-  buttonComponent = DefaultButtonComponent,
-  actionButtons = [],
+  submitComponent = DefaultSubmitComponent,
+  actions = [],
   validate,
   autoValidate = false,
   autoClean = true,
@@ -235,8 +249,8 @@ export const Form = ({
   className,
   fieldContainerStyle,
   fieldContainerClassName,
-  buttonsContainerStyle,
-  buttonsContainerClassName,
+  actionsContainerStyle,
+  actionsContainerClassName,
   isDebug = false,
   ...props
 }) => {
@@ -254,11 +268,17 @@ export const Form = ({
       {...props}
     >
       <FormikForm
-        style={{ ...defaultStyles.form, ...style }}
+        style={className ? undefined : { ...defaultStyles.form, ...style }}
         className={className}
         onClick={onClick}
       >
-        {Object.entries(fields).map(([name, fieldDefinition]) => {
+        {(pickFields || Object.keys(fields)).map(name => {
+          const fieldDefinition = fields[name];
+
+          if (omitFields && omitFields.includes(name)) {
+            return null;
+          }
+
           // If you capitalize the first letter you can just <Component />
           const Component =
             definitionToComponent(fieldDefinition, name) ||
@@ -267,13 +287,17 @@ export const Form = ({
           return (
             <div
               key={`quaveform-${name}`}
-              style={{
-                ...defaultStyles.fieldContainer,
-                ...fieldContainerStyle,
-              }}
+              style={
+                fieldContainerClassName
+                  ? undefined
+                  : {
+                      ...defaultStyles.fieldContainer,
+                      ...fieldContainerStyle,
+                    }
+              }
               className={fieldContainerClassName}
             >
-              {typeof Component === 'object' ? (
+              {React.isValidElement(Component) ? (
                 Component
               ) : (
                 <Component
@@ -286,13 +310,14 @@ export const Form = ({
           );
         })}
 
-        <Buttons
-          style={buttonsContainerStyle}
-          className={buttonsContainerClassName}
-          actionButtons={actionButtons}
-          buttonComponent={buttonComponent}
+        <Actions
+          style={actionsContainerStyle}
+          className={actionsContainerClassName}
+          actions={actions}
+          submitComponent={submitComponent}
           submitLabel={submitLabel}
           initialValues={initialValues}
+          hideSubmit={hideSubmit}
         />
 
         {isDebug && <DebugComponent />}

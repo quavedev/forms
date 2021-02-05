@@ -21,6 +21,7 @@ const defaultStyles = {
 /**
  * Build a complete CRUD table just from the values and their definition.
  * @param definition
+ * @param fields
  * @param values
  * @param format
  * @param columns
@@ -34,6 +35,7 @@ const defaultStyles = {
  */
 export const Table = ({
   definition,
+  fields: fieldsInput,
   objects: rawObjects = [],
   format = () => {},
   pickColumns,
@@ -45,15 +47,12 @@ export const Table = ({
   transformAfterUse,
   component: TableComponent,
 }) => {
+  const fields = definition?.fields || fieldsInput;
   const objects = transformBeforeUse
     ? rawObjects.map(object =>
         Object.fromEntries(
           Object.entries(object).map(([key, rawValue]) => {
-            const value = transformBeforeUse(
-              rawValue,
-              definition.fields[key],
-              key
-            );
+            const value = transformBeforeUse(rawValue, fields[key], key);
 
             // Return value only if it's not null or undefined
             return [key, value ?? rawValue];
@@ -103,8 +102,7 @@ export const Table = ({
       objects.map((object, index) =>
         columnNames.map(key => ({
           edit: () => setEditingObject(object),
-          values:
-            format(object[key], definition.fields[key], key) || object[key],
+          values: format(object[key], fields[key], key) || object[key],
         }))
       );
 
@@ -121,7 +119,7 @@ export const Table = ({
                 key={`table-header-${name}-${index}`}
                 style={defaultStyles.th}
               >
-                {definition.fields[name]?.label || name}
+                {fields[name]?.label || name}
               </th>
             ))}
           </tr>
@@ -135,8 +133,7 @@ export const Table = ({
             >
               {columnNames.map(key => {
                 const formattedValue =
-                  format(object[key], definition.fields[key], key) ||
-                  object[key];
+                  format(object[key], fields[key], key) || object[key];
                 return (
                   <td
                     key={`table-cell-${formattedValue}-${index}`}
@@ -172,6 +169,7 @@ export const Table = ({
           <Form
             initialValues={editingObject}
             definition={definition}
+            fields={fields}
             onSubmit={values => {
               const transformedValues = transformAfterUse
                 ? values.map(value => {

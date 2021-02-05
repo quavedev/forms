@@ -118,4 +118,4 @@ the props will look in the final HTML document.
 ### Default Layout
 
 Our default layout is decent (I think). You may take a look at the
-`defaultStyles` object at the top of the `Form.js` file.
+`defaultStyles` object at the top of the `definitionToComponent.js` file.
