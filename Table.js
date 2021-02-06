@@ -84,7 +84,7 @@ export const Table = ({
     actionButtons: [
       ...(rawFormProps.actionButtons || []).map(actionButton => ({
         ...actionButton,
-        handler: values => {
+        handler: ({ values }) => {
           closeForm();
           actionButton.handler(values);
         },

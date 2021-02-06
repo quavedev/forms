@@ -161,6 +161,7 @@ const Actions = ({
   className,
   submitLabel,
   hideSubmit,
+  submitDisabled,
 }) => {
   const context = useFormikContext();
 
@@ -172,13 +173,18 @@ const Actions = ({
       className={className}
     >
       {actions.map(
-        ({ label, handler, shouldBeVisible, component, ...props }) => {
+        ({ label, handler, shouldRender, disabled, component, ...props }) => {
           const values = { ...initialValues, ...context.values };
           const Component = component || SubmitComponent;
 
-          if (shouldBeVisible && !shouldBeVisible(values)) {
+          if (shouldRender && !shouldRender(context)) {
             return null;
           }
+
+          console.log(
+            'disabled',
+            typeof disabled === 'function' ? disabled(context) : disabled
+          );
 
           return React.isValidElement(Component) ? (
             Component
@@ -187,8 +193,11 @@ const Actions = ({
               key={`quaveform-action-${label}`}
               onClick={e => {
                 e.preventDefault();
-                handler(values, context, e);
+                handler(context, e);
               }}
+              disabled={
+                typeof disabled === 'function' ? disabled(context) : disabled
+              }
               {...props}
             >
               {label}
@@ -201,7 +210,16 @@ const Actions = ({
         (React.isValidElement(SubmitComponent) ? (
           SubmitComponent
         ) : (
-          <SubmitComponent type="submit">{submitLabel}</SubmitComponent>
+          <SubmitComponent
+            type="submit"
+            disabled={
+              typeof submitDisabled === 'function'
+                ? submitDisabled(context)
+                : submitDisabled
+            }
+          >
+            {submitLabel}
+          </SubmitComponent>
         ))}
     </div>
   );
@@ -239,34 +257,42 @@ export const FormProvider = ({
   className,
   style,
   submitLabel,
+  submitDisabled,
   submitComponent,
   actions,
   validate,
   autoValidate,
   autoClean,
+  defaultMessages = {},
   children,
-}) => (
-  <FormContext.Provider
-    value={{
-      definitionToComponent,
-      fieldContainerStyle,
-      fieldContainerClassName,
-      actionsContainerStyle,
-      actionsContainerClassName,
-      isDebug,
-      className,
-      style,
-      submitLabel,
-      submitComponent,
-      actions,
-      validate,
-      autoValidate,
-      autoClean,
-    }}
-  >
-    {children}
-  </FormContext.Provider>
-);
+}) => {
+  // More about this here: https://github.com/aldeed/simpl-schema#customizing-validation-messages
+  SimpleSchema.setDefaultMessages(defaultMessages);
+
+  return (
+    <FormContext.Provider
+      value={{
+        definitionToComponent,
+        fieldContainerStyle,
+        fieldContainerClassName,
+        actionsContainerStyle,
+        actionsContainerClassName,
+        isDebug,
+        className,
+        style,
+        submitLabel,
+        submitDisabled,
+        submitComponent,
+        actions,
+        validate,
+        autoValidate,
+        autoClean,
+      }}
+    >
+      {children}
+    </FormContext.Provider>
+  );
+};
 
 const mergeClassNames = (...args) => args.filter(Boolean).join(' ');
 
@@ -278,6 +304,7 @@ const mergeClassNames = (...args) => args.filter(Boolean).join(' ');
  * @param onSubmit
  * @param onClick
  * @param submitLabel
+ * @param submitDisabled
  * @param definitionToComponent
  * @param submitComponent
  * @param actions
@@ -306,6 +333,7 @@ export const Form = props => {
     onSubmit,
     onClick,
     submitLabel = 'SUBMIT',
+    submitDisabled = false,
     hideSubmit = false,
     definitionToComponent,
     submitComponent = DefaultSubmitComponent,
@@ -405,6 +433,7 @@ export const Form = props => {
           submitLabel={submitLabel}
           initialValues={initialValues}
           hideSubmit={hideSubmit}
+          submitDisabled={submitDisabled}
         />
 
         {isDebug && <DebugComponent />}
