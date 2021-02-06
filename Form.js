@@ -1,5 +1,6 @@
+/* eslint-disable react/destructuring-assignment */
 import { Field, Form as FormikForm, Formik, useFormikContext } from 'formik';
-import React from 'react';
+import React, { useContext } from 'react';
 import SimpleSchema from 'simpl-schema';
 
 const defaultStyles = {
@@ -143,6 +144,8 @@ const DebugComponent = () => {
         backgroundColor: '#eee',
         padding: '1em',
         gridColumn: '1/-1',
+        overflowX: 'scroll',
+        color: '#000',
       }}
     >
       <code>{JSON.stringify(context, null, 2)}</code>
@@ -204,6 +207,69 @@ const Actions = ({
   );
 };
 
+const FormContext = React.createContext({});
+FormContext.displayName = 'FormContext';
+
+/**
+ * Provider to set default values to all forms that are children of it
+ * @param definitionToComponent
+ * @param fieldContainerStyle
+ * @param fieldContainerClassName
+ * @param actionsContainerStyle
+ * @param actionsContainerClassName
+ * @param isDebug
+ * @param className
+ * @param style
+ * @param submitLabel
+ * @param submitComponent
+ * @param actions
+ * @param validate
+ * @param autoValidate
+ * @param autoClean
+ * @returns {JSX.Element}
+ * @constructor
+ */
+export const FormProvider = ({
+  definitionToComponent,
+  fieldContainerStyle,
+  fieldContainerClassName,
+  actionsContainerStyle,
+  actionsContainerClassName,
+  isDebug = false,
+  className,
+  style,
+  submitLabel,
+  submitComponent,
+  actions,
+  validate,
+  autoValidate,
+  autoClean,
+  children,
+}) => (
+  <FormContext.Provider
+    value={{
+      definitionToComponent,
+      fieldContainerStyle,
+      fieldContainerClassName,
+      actionsContainerStyle,
+      actionsContainerClassName,
+      isDebug,
+      className,
+      style,
+      submitLabel,
+      submitComponent,
+      actions,
+      validate,
+      autoValidate,
+      autoClean,
+    }}
+  >
+    {children}
+  </FormContext.Provider>
+);
+
+const mergeClassNames = (...args) => args.filter(Boolean).join(' ');
+
 /**
  * Create a form automatically passing it's definition.
  * @param initialValues
@@ -229,33 +295,57 @@ const Actions = ({
  * @returns {JSX.Element}
  * @constructor
  */
-export const Form = ({
-  initialValues = {},
-  definition,
-  fields: fieldsInput,
-  omitFields,
-  pickFields,
-  onSubmit,
-  onClick,
-  submitLabel = 'SUBMIT',
-  hideSubmit = false,
-  definitionToComponent = defaultDefinitionToComponent,
-  submitComponent = DefaultSubmitComponent,
-  actions = [],
-  validate,
-  autoValidate = false,
-  autoClean = true,
-  style,
-  className,
-  fieldContainerStyle,
-  fieldContainerClassName,
-  actionsContainerStyle,
-  actionsContainerClassName,
-  isDebug = false,
-  ...props
-}) => {
-  const simpleSchema = definition?.toSimpleSchema();
+export const Form = props => {
+  const context = useContext(FormContext);
+  const {
+    initialValues = {},
+    definition,
+    fields: fieldsInput,
+    omitFields,
+    pickFields,
+    onSubmit,
+    onClick,
+    submitLabel = 'SUBMIT',
+    hideSubmit = false,
+    definitionToComponent,
+    submitComponent = DefaultSubmitComponent,
+    actions = [],
+    validate,
+    autoValidate = true,
+    autoClean = true,
+    style,
+    className,
+    fieldContainerStyle,
+    fieldContainerClassName,
+    actionsContainerStyle,
+    actionsContainerClassName,
+    isDebug = false,
+    ...rest
+  } = {
+    // I know this is ugly, but all it does is default to context then props,
+    // handling cases were we want to merge both instead of just replace
+    ...context,
+    ...props,
 
+    definitionToComponent: (...args) =>
+      props.definitionToComponent?.(...args) ||
+      context.definitionToComponent?.(...args) ||
+      defaultDefinitionToComponent(...args),
+    validate: (...args) =>
+      props.validate?.(...args) || context.validate?.(...args),
+
+    className: mergeClassNames(context.className, props.className),
+    fieldContainerClassName: mergeClassNames(
+      context.fieldContainerClassName,
+      props.fieldContainerClassName
+    ),
+    actionsContainerClassName: mergeClassNames(
+      context.actionsContainerClassName,
+      props.actionsContainerClassName
+    ),
+  };
+
+  const simpleSchema = definition?.toSimpleSchema();
   const fields = definition?.fields || fieldsInput;
 
   return (
@@ -265,7 +355,7 @@ export const Form = ({
       validate={
         autoValidate && simpleSchema ? defaultValidate(simpleSchema) : validate
       }
-      {...props}
+      {...rest}
     >
       <FormikForm
         style={className ? undefined : { ...defaultStyles.form, ...style }}
@@ -279,10 +369,7 @@ export const Form = ({
             return null;
           }
 
-          // If you capitalize the first letter you can just <Component />
-          const Component =
-            definitionToComponent(fieldDefinition, name) ||
-            defaultDefinitionToComponent(fieldDefinition, name);
+          const Component = definitionToComponent(fieldDefinition, name);
 
           return (
             <div
