@@ -90,8 +90,10 @@ const defaultDefinitionToComponent = (fieldDefinition, name) => {
   }
 };
 
-const defaultValidate = simpleSchema => values => {
-  const validationContext = simpleSchema.newContext();
+const defaultValidate = (simpleSchema, fields) => values => {
+  const validationContext = simpleSchema
+    .pick(...Object.keys(fields))
+    .newContext();
 
   const cleanedValues = validationContext.clean(values);
   validationContext.validate(cleanedValues);
@@ -117,10 +119,14 @@ const getInitialValues = (initialValues, fields) =>
     ])
   );
 
-const getOnSubmit = (onSubmit, simpleSchema, autoClean, initialValues) => (
-  rawValues,
-  actions
-) => {
+const getOnSubmit = (
+  onSubmit,
+  simpleSchema,
+  autoClean,
+  initialValues,
+  formikContext,
+  autoUpdateIsSubmitting
+) => async (rawValues, actions) => {
   // We want to use clean to do conversions (e.g. date strings to Date), but
   // keep excess values passed
   const values = {
@@ -128,14 +134,17 @@ const getOnSubmit = (onSubmit, simpleSchema, autoClean, initialValues) => (
     ...(simpleSchema && autoClean ? simpleSchema.clean(rawValues) : rawValues),
   };
 
-  return onSubmit
+  await (onSubmit
     ? onSubmit(values, actions)
-    : defaultOnSubmit(values, actions);
+    : defaultOnSubmit(values, actions));
+
+  if (autoUpdateIsSubmitting) {
+    formikContext.setSubmitting(false);
+  }
 };
 
 const DebugComponent = () => {
-  const context = useFormikContext();
-  console.debug('FORMIK CONTEXT', context);
+  const formikContext = useFormikContext();
 
   return (
     <pre
@@ -148,7 +157,7 @@ const DebugComponent = () => {
         color: '#000',
       }}
     >
-      <code>{JSON.stringify(context, null, 2)}</code>
+      <code>{JSON.stringify(formikContext, null, 2)}</code>
     </pre>
   );
 };
@@ -163,7 +172,11 @@ const Actions = ({
   hideSubmit,
   submitDisabled,
 }) => {
-  const context = useFormikContext();
+  const rawFormikContext = useFormikContext();
+  const formikContext = {
+    ...rawFormikContext,
+    values: { ...initialValues, ...rawFormikContext.values },
+  };
 
   return (
     <div
@@ -174,17 +187,11 @@ const Actions = ({
     >
       {actions.map(
         ({ label, handler, shouldRender, disabled, component, ...props }) => {
-          const values = { ...initialValues, ...context.values };
           const Component = component || SubmitComponent;
 
-          if (shouldRender && !shouldRender(context)) {
+          if (shouldRender && !shouldRender(formikContext)) {
             return null;
           }
-
-          console.log(
-            'disabled',
-            typeof disabled === 'function' ? disabled(context) : disabled
-          );
 
           return React.isValidElement(Component) ? (
             Component
@@ -193,10 +200,12 @@ const Actions = ({
               key={`quaveform-action-${label}`}
               onClick={e => {
                 e.preventDefault();
-                handler(context, e);
+                handler(formikContext, e);
               }}
               disabled={
-                typeof disabled === 'function' ? disabled(context) : disabled
+                typeof disabled === 'function'
+                  ? disabled(formikContext)
+                  : disabled
               }
               {...props}
             >
@@ -213,9 +222,10 @@ const Actions = ({
           <SubmitComponent
             type="submit"
             disabled={
-              typeof submitDisabled === 'function'
-                ? submitDisabled(context)
-                : submitDisabled
+              formikContext.isSubmitting ||
+              (typeof submitDisabled === 'function'
+                ? submitDisabled(formikContext)
+                : submitDisabled)
             }
           >
             {submitLabel}
@@ -239,6 +249,8 @@ FormContext.displayName = 'FormContext';
  * @param className
  * @param style
  * @param submitLabel
+ * @param submitDisabled
+ * @param autoUpdateIsSubmitting
  * @param submitComponent
  * @param actions
  * @param validate
@@ -258,6 +270,7 @@ export const FormProvider = ({
   style,
   submitLabel,
   submitDisabled,
+  autoUpdateIsSubmitting,
   submitComponent,
   actions,
   validate,
@@ -282,6 +295,7 @@ export const FormProvider = ({
         style,
         submitLabel,
         submitDisabled,
+        autoUpdateIsSubmitting,
         submitComponent,
         actions,
         validate,
@@ -296,12 +310,37 @@ export const FormProvider = ({
 
 const mergeClassNames = (...args) => args.filter(Boolean).join(' ');
 
+const pickOrOmit = (rawFields, pickFields, omitFields) => {
+  if (pickFields?.length) {
+    return pickFields.reduce(
+      (acc, fieldName) => ({
+        ...acc,
+        [fieldName]: rawFields[fieldName],
+      }),
+      {}
+    );
+  }
+
+  if (omitFields?.length) {
+    const mutatedFields = { ...rawFields };
+    omitFields.forEach(fieldName => {
+      delete mutatedFields[fieldName];
+    });
+    return mutatedFields;
+  }
+
+  return rawFields;
+};
+
 /**
  * Create a form automatically passing it's definition.
  * @param initialValues
  * @param definition
  * @param fields
+ * @param omitFields
+ * @param pickFields
  * @param onSubmit
+ * @param autoUpdateIsSubmitting
  * @param onClick
  * @param submitLabel
  * @param submitDisabled
@@ -331,6 +370,7 @@ export const Form = props => {
     omitFields,
     pickFields,
     onSubmit,
+    autoUpdateIsSubmitting = false,
     onClick,
     submitLabel = 'SUBMIT',
     submitDisabled = false,
@@ -374,14 +414,24 @@ export const Form = props => {
   };
 
   const simpleSchema = definition?.toSimpleSchema();
-  const fields = definition?.fields || fieldsInput;
+  const rawFields = definition?.fields || fieldsInput;
+  const fields = pickOrOmit(rawFields, pickFields, omitFields);
 
   return (
     <Formik
-      initialValues={getInitialValues(initialValues, fields)}
-      onSubmit={getOnSubmit(onSubmit, simpleSchema, autoClean, initialValues)}
+      initialValues={getInitialValues(initialValues, rawFields)}
+      onSubmit={getOnSubmit(
+        onSubmit,
+        simpleSchema,
+        autoClean,
+        initialValues,
+        context,
+        autoUpdateIsSubmitting
+      )}
       validate={
-        autoValidate && simpleSchema ? defaultValidate(simpleSchema) : validate
+        autoValidate && simpleSchema
+          ? defaultValidate(simpleSchema, fields)
+          : validate
       }
       {...rest}
     >
@@ -390,13 +440,7 @@ export const Form = props => {
         className={className}
         onClick={onClick}
       >
-        {(pickFields || Object.keys(fields)).map(name => {
-          const fieldDefinition = fields[name];
-
-          if (omitFields && omitFields.includes(name)) {
-            return null;
-          }
-
+        {Object.entries(fields).map(([name, fieldDefinition]) => {
           const Component = definitionToComponent(fieldDefinition, name);
 
           return (
