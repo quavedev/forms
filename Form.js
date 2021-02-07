@@ -111,21 +111,21 @@ const defaultOnSubmit = values =>
   console.warn('No onSubmit implemented', values);
 
 // Get initial value from defaultValue if it's not present in initialValues
-const getInitialValues = (initialValues, fields) =>
-  Object.fromEntries(
+const getInitialValues = (initialValues, fields, clipValues) => ({
+  ...(clipValues ? {} : initialValues),
+  ...Object.fromEntries(
     Object.entries(fields).map(([name, fieldDefinition]) => [
       name,
       initialValues[name] || fieldDefinition.defaultValue || '',
     ])
-  );
+  ),
+});
 
 const getOnSubmit = (
   onSubmit,
   simpleSchema,
   autoClean,
-  initialValues,
-  formikContext,
-  autoUpdateIsSubmitting
+  initialValues
 ) => async (rawValues, actions) => {
   // We want to use clean to do conversions (e.g. date strings to Date), but
   // keep excess values passed
@@ -134,13 +134,9 @@ const getOnSubmit = (
     ...(simpleSchema && autoClean ? simpleSchema.clean(rawValues) : rawValues),
   };
 
-  await (onSubmit
+  return onSubmit
     ? onSubmit(values, actions)
-    : defaultOnSubmit(values, actions));
-
-  if (autoUpdateIsSubmitting) {
-    formikContext.setSubmitting(false);
-  }
+    : defaultOnSubmit(values, actions);
 };
 
 const DebugComponent = () => {
@@ -200,7 +196,7 @@ const Actions = ({
               key={`quaveform-action-${label}`}
               onClick={e => {
                 e.preventDefault();
-                handler(formikContext, e);
+                handler?.(formikContext, e);
               }}
               disabled={
                 typeof disabled === 'function'
@@ -250,7 +246,6 @@ FormContext.displayName = 'FormContext';
  * @param style
  * @param submitLabel
  * @param submitDisabled
- * @param autoUpdateIsSubmitting
  * @param submitComponent
  * @param actions
  * @param validate
@@ -270,7 +265,6 @@ export const FormProvider = ({
   style,
   submitLabel,
   submitDisabled,
-  autoUpdateIsSubmitting,
   submitComponent,
   actions,
   validate,
@@ -295,7 +289,6 @@ export const FormProvider = ({
         style,
         submitLabel,
         submitDisabled,
-        autoUpdateIsSubmitting,
         submitComponent,
         actions,
         validate,
@@ -335,12 +328,12 @@ const pickOrOmit = (rawFields, pickFields, omitFields) => {
 /**
  * Create a form automatically passing it's definition.
  * @param initialValues
+ * @param clipValues - Clear all fields not present in the definition provided
  * @param definition
  * @param fields
  * @param omitFields
  * @param pickFields
  * @param onSubmit
- * @param autoUpdateIsSubmitting
  * @param onClick
  * @param submitLabel
  * @param submitDisabled
@@ -365,12 +358,12 @@ export const Form = props => {
   const context = useContext(FormContext);
   const {
     initialValues = {},
+    clipValues = false,
     definition,
     fields: fieldsInput,
     omitFields,
     pickFields,
     onSubmit,
-    autoUpdateIsSubmitting = false,
     onClick,
     submitLabel = 'SUBMIT',
     submitDisabled = false,
@@ -419,15 +412,8 @@ export const Form = props => {
 
   return (
     <Formik
-      initialValues={getInitialValues(initialValues, rawFields)}
-      onSubmit={getOnSubmit(
-        onSubmit,
-        simpleSchema,
-        autoClean,
-        initialValues,
-        context,
-        autoUpdateIsSubmitting
-      )}
+      initialValues={getInitialValues(initialValues, fields, clipValues)}
+      onSubmit={getOnSubmit(onSubmit, simpleSchema, autoClean, initialValues)}
       validate={
         autoValidate && simpleSchema
           ? defaultValidate(simpleSchema, fields)
