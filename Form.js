@@ -196,6 +196,7 @@ const Actions = ({
               key={`quaveform-action-${label}`}
               onClick={e => {
                 e.preventDefault();
+                // eslint-disable-next-line no-unused-expressions
                 handler?.(formikContext, e);
               }}
               disabled={
