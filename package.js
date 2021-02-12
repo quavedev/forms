@@ -11,6 +11,5 @@ Package.onUse(api => {
   api.use('quave:definitions@1.0.0');
   api.use('ecmascript');
 
-  api.export('Form', 'client');
   api.addFiles('Form.js', 'client');
 });
