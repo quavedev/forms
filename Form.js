@@ -252,6 +252,8 @@ FormContext.displayName = 'FormContext';
  * @param validate
  * @param autoValidate
  * @param autoClean
+ * @param defaultMessages
+ * @param children
  * @returns {JSX.Element}
  * @constructor
  */
@@ -396,7 +398,7 @@ export const Form = props => {
     validate: (...args) =>
       props.validate?.(...args) || context.validate?.(...args),
 
-    className: mergeClassNames(context.className, props.className),
+    className: mergeClassNames(props.className, context.className),
     fieldContainerClassName: mergeClassNames(
       context.fieldContainerClassName,
       props.fieldContainerClassName
