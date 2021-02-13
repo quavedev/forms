@@ -308,13 +308,17 @@ const mergeClassNames = (...args) => args.filter(Boolean).join(' ');
 
 const pickOrOmit = (rawFields, pickFields, omitFields) => {
   if (pickFields?.length) {
-    return pickFields.reduce(
+    const picked = pickFields.reduce(
       (acc, fieldName) => ({
         ...acc,
-        [fieldName]: rawFields[fieldName],
+        [fieldName]: rawFields[fieldName] || null,
       }),
       {}
     );
+    if (Object.values(picked).includes(null)) {
+      throw Error(`Unable to pick value from fields: ${pickFields}`);
+    }
+    return picked;
   }
 
   if (omitFields?.length) {
