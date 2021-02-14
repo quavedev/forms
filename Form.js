@@ -1,6 +1,6 @@
 /* eslint-disable react/destructuring-assignment */
 import { Field, Form as FormikForm, Formik, useFormikContext } from 'formik';
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import SimpleSchema from 'simpl-schema';
 
 const defaultStyles = {
@@ -332,6 +332,54 @@ const pickOrOmit = (rawFields, pickFields, omitFields) => {
   return rawFields;
 };
 
+const Generate = ({ generate }) => {
+  const formikContext = useFormikContext();
+
+  useEffect(() => {
+    generate().then(values => formikContext.setValues(values));
+  }, []);
+
+  return null;
+};
+
+const Fields = ({
+  fields,
+  fieldContainerClassName,
+  fieldContainerStyle,
+  definitionToComponent,
+}) => (
+  <>
+    {Object.entries(fields).map(([name, fieldDefinition]) => {
+      const Component = definitionToComponent(fieldDefinition, name);
+
+      return (
+        <div
+          key={`quaveform-${name}-${Math.random()}`}
+          style={
+            fieldContainerClassName
+              ? undefined
+              : {
+                  ...defaultStyles.fieldContainer,
+                  ...fieldContainerStyle,
+                }
+          }
+          className={fieldContainerClassName}
+        >
+          {React.isValidElement(Component) ? (
+            Component
+          ) : (
+            <Component
+              key={`quaveform-${name}`}
+              name={name}
+              label={fieldDefinition.label}
+            />
+          )}
+        </div>
+      );
+    })}
+  </>
+);
+
 /**
  * Create a form automatically passing it's definition.
  * @param initialValues
@@ -364,10 +412,12 @@ const pickOrOmit = (rawFields, pickFields, omitFields) => {
 export const Form = props => {
   const context = useContext(FormContext);
   const {
-    initialValues = {},
+    initialValues: rawInitialValues,
     clipValues = false,
+    format,
     definition,
     fields: fieldsInput,
+    generate,
     omitFields,
     pickFields,
     onSubmit,
@@ -416,6 +466,7 @@ export const Form = props => {
   const simpleSchema = definition?.toSimpleSchema();
   const rawFields = definition?.fields || fieldsInput;
   const fields = pickOrOmit(rawFields, pickFields, omitFields);
+  const initialValues = rawInitialValues?.() || rawInitialValues || {};
 
   return (
     <Formik
@@ -433,34 +484,15 @@ export const Form = props => {
         className={className}
         onClick={onClick}
       >
-        {Object.entries(fields).map(([name, fieldDefinition]) => {
-          const Component = definitionToComponent(fieldDefinition, name);
+        <Fields
+          fields={fields}
+          fieldContainerClassName={fieldContainerClassName}
+          fieldContainerStyle={fieldContainerStyle}
+          definitionToComponent={definitionToComponent}
+          generate={async () => ({ cpf: '99737574168' })}
+        />
 
-          return (
-            <div
-              key={`quaveform-${name}`}
-              style={
-                fieldContainerClassName
-                  ? undefined
-                  : {
-                      ...defaultStyles.fieldContainer,
-                      ...fieldContainerStyle,
-                    }
-              }
-              className={fieldContainerClassName}
-            >
-              {React.isValidElement(Component) ? (
-                Component
-              ) : (
-                <Component
-                  key={`quaveform-${name}`}
-                  name={name}
-                  label={fieldDefinition.label}
-                />
-              )}
-            </div>
-          );
-        })}
+        {generate && <Generate generate={generate} />}
 
         <Actions
           style={actionsContainerStyle}
