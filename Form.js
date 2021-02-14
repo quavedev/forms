@@ -336,7 +336,12 @@ const Generate = ({ generate }) => {
   const formikContext = useFormikContext();
 
   useEffect(() => {
-    generate().then(values => formikContext.setValues(values));
+    // We have to use an IIFE because we can't return a promise inside useEffect
+    // and I want to accept non async functions as well, so "then" wouldn't work
+    (async () => {
+      const values = await generate();
+      formikContext.setValues(values);
+    })();
   }, []);
 
   return null;
