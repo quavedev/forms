@@ -111,15 +111,17 @@ const defaultOnSubmit = values =>
   console.warn('No onSubmit implemented', values);
 
 // Get initial value from defaultValue if it's not present in initialValues
-const getInitialValues = (initialValues, fields, clipValues) => ({
-  ...(clipValues ? {} : initialValues),
-  ...Object.fromEntries(
-    Object.entries(fields).map(([name, fieldDefinition]) => [
-      name,
-      initialValues[name] || fieldDefinition.defaultValue || '',
-    ])
-  ),
-});
+const getInitialValues = (initialValues, fields, clipValues) => {
+  return {
+    ...(clipValues ? {} : initialValues),
+    ...Object.fromEntries(
+      Object.entries(fields).map(([name, fieldDefinition]) => [
+        name,
+        initialValues[name] ?? fieldDefinition.defaultValue ?? '',
+      ])
+    ),
+  };
+};
 
 const getOnSubmit = (
   onSubmit,
@@ -340,7 +342,11 @@ const Generate = ({ generate }) => {
     // and I want to accept non async functions as well, so "then" wouldn't work
     (async () => {
       const values = await generate();
-      formikContext.setValues(values);
+      formikContext.setValues({
+        ...formikContext.initialValues,
+        ...formikContext.values,
+        ...values,
+      });
     })();
   }, []);
 
