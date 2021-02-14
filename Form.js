@@ -417,7 +417,7 @@ const Fields = ({
 export const Form = props => {
   const context = useContext(FormContext);
   const {
-    initialValues: rawInitialValues,
+    initialValues = {},
     clipValues = false,
     format,
     definition,
@@ -471,7 +471,6 @@ export const Form = props => {
   const simpleSchema = definition?.toSimpleSchema();
   const rawFields = definition?.fields || fieldsInput;
   const fields = pickOrOmit(rawFields, pickFields, omitFields);
-  const initialValues = rawInitialValues?.() || rawInitialValues || {};
 
   return (
     <Formik
