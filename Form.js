@@ -351,6 +351,12 @@ const Generate = ({ generate }) => {
   return null;
 };
 
+const FormikContextLoad = ({ onFormikContext }) => {
+  const formikContext = useFormikContext();
+  onFormikContext(formikContext);
+  return null;
+};
+
 const Fields = ({
   fields,
   fieldContainerClassName,
@@ -447,6 +453,7 @@ export const Form = props => {
     actionsContainerStyle,
     actionsContainerClassName,
     isDebug = false,
+    onFormikContext,
     ...rest
   } = {
     // I know this is ugly, but all it does is default to context then props,
@@ -501,6 +508,9 @@ export const Form = props => {
         />
 
         {generate && <Generate generate={generate} />}
+        {onFormikContext && (
+          <FormikContextLoad onFormikContext={onFormikContext} />
+        )}
 
         <Actions
           style={actionsContainerStyle}
