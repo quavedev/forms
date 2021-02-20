@@ -351,6 +351,16 @@ const Generate = ({ generate }) => {
   return null;
 };
 
+const FormikContextLoad = ({ onFormikContext }) => {
+  const formikContext = useFormikContext();
+
+  useEffect(() => {
+    onFormikContext(formikContext);
+  }, []);
+
+  return null;
+};
+
 const Fields = ({
   fields,
   fieldContainerClassName,
@@ -431,6 +441,7 @@ export const Form = props => {
     pickFields,
     onSubmit,
     onClick,
+    onFormikContext,
     submitLabel = 'SUBMIT',
     submitDisabled = false,
     hideSubmit = false,
@@ -501,6 +512,9 @@ export const Form = props => {
         />
 
         {generate && <Generate generate={generate} />}
+        {onFormikContext && (
+          <FormikContextLoad onFormikContext={onFormikContext} />
+        )}
 
         <Actions
           style={actionsContainerStyle}
