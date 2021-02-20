@@ -1,7 +1,7 @@
 /* global Package */
 Package.describe({
   name: 'quave:forms',
-  version: '2.0.3',
+  version: '2.0.4',
   summary: 'Create Formik forms automatically from a SimpleSchema object.',
   git: 'https://github.com/quavedev/forms',
 });
