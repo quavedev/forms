@@ -353,7 +353,11 @@ const Generate = ({ generate }) => {
 
 const FormikContextLoad = ({ onFormikContext }) => {
   const formikContext = useFormikContext();
-  onFormikContext(formikContext);
+
+  useEffect(() => {
+    onFormikContext(formikContext);
+  }, []);
+
   return null;
 };
 
@@ -405,6 +409,7 @@ const Fields = ({
  * @param pickFields
  * @param onSubmit
  * @param onClick
+ * @param onFormikContext
  * @param submitLabel
  * @param submitDisabled
  * @param definitionToComponent
@@ -437,6 +442,7 @@ export const Form = props => {
     pickFields,
     onSubmit,
     onClick,
+    onFormikContext,
     submitLabel = 'SUBMIT',
     submitDisabled = false,
     hideSubmit = false,
@@ -453,7 +459,6 @@ export const Form = props => {
     actionsContainerStyle,
     actionsContainerClassName,
     isDebug = false,
-    onFormikContext,
     ...rest
   } = {
     // I know this is ugly, but all it does is default to context then props,
