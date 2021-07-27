@@ -401,29 +401,30 @@ const Fields = ({
 
 /**
  * Create a form automatically passing it's definition.
- * @param initialValues
- * @param clipValues - Clear all fields not present in the definition provided
- * @param definition
- * @param fields
- * @param omitFields
- * @param pickFields
- * @param onSubmit
- * @param onClick
- * @param submitLabel
- * @param submitDisabled
- * @param definitionToComponent
- * @param submitComponent
- * @param actions
- * @param validate
- * @param autoValidate
- * @param autoClean
- * @param style
- * @param className
- * @param fieldContainerStyle
- * @param fieldContainerClassName
- * @param actionsContainerStyle
- * @param actionsContainerClassName
- * @param isDebug
+ * @param props.initialValues
+ * @param props.clipValues - Clear all fields not present in the definition provided
+ * @param props.definition
+ * @param props.fields
+ * @param props.omitFields
+ * @param props.pickFields
+ * @param props.onSubmit
+ * @param props.onClick
+ * @param props.submitLabel
+ * @param props.submitDisabled
+ * @param props.definitionToComponent
+ * @param props.submitComponent
+ * @param props.actions
+ * @param props.validate
+ * @param props.autoValidate
+ * @param props.autoClean
+ * @param props.style
+ * @param props.className
+ * @param props.fieldContainerStyle
+ * @param props.fieldContainerClassName
+ * @param props.actionsContainerStyle
+ * @param props.actionsContainerClassName
+ * @param props.customFormBody
+ * @param props.isDebug
  * @param props
  * @returns {JSX.Element}
  * @constructor
@@ -457,6 +458,7 @@ export const Form = props => {
     fieldContainerClassName,
     actionsContainerStyle,
     actionsContainerClassName,
+    customFormBody: CustomFormBody,
     isDebug = false,
     ...rest
   } = {
@@ -503,13 +505,16 @@ export const Form = props => {
         className={className}
         onClick={onClick}
       >
-        <Fields
-          fields={fields}
-          fieldContainerClassName={fieldContainerClassName}
-          fieldContainerStyle={fieldContainerStyle}
-          definitionToComponent={definitionToComponent}
-          generate={async () => ({ cpf: '99737574168' })}
-        />
+        {CustomFormBody ? (
+          <CustomFormBody />
+        ) : (
+          <Fields
+            fields={fields}
+            fieldContainerClassName={fieldContainerClassName}
+            fieldContainerStyle={fieldContainerStyle}
+            definitionToComponent={definitionToComponent}
+          />
+        )}
 
         {generate && <Generate generate={generate} />}
         {onFormikContext && (
