@@ -1,36 +1,25 @@
-/* eslint-disable react/destructuring-assignment */
 import { Field, Form as FormikForm, Formik, useFormikContext } from 'formik';
-import React, { useContext, useEffect } from 'react';
+import React, { useContext } from 'react';
 import SimpleSchema from 'simpl-schema';
+import { DateTimeType } from 'meteor/quave:custom-type-date-time/DateTimeType';
 
-const defaultStyles = {
-  form: {
-    padding: '1em',
-    display: 'grid',
-    gridGap: '1em',
-    gridTemplateColumns: '1fr',
-  },
-  fieldContainer: {
-    gridColumn: '1/-1',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5em',
-  },
-  actionsContainer: {
-    marginTop: '1em',
-    gridColumn: '1/-1',
-    display: 'flex',
-    flexDirection: 'row',
-    gap: '1em',
-    justifyContent: 'flex-end',
-  },
-};
+export const defaultActions = [{ label: 'submit', type: 'submit' }];
 
 // Get's the field name and definition and returns a formik compatible field
-const defaultDefinitionToComponent = (fieldDefinition, name) => {
+export const defaultDefinitionToComponent = ({
+  fieldDefinition,
+  name,
+  formikContext,
+}) => {
+  const fieldContainerStyles = {
+    display: 'flex',
+    flexDirection: 'column',
+    marginBottom: '1em',
+  };
+
   if (fieldDefinition.allowedValues) {
     return props => (
-      <>
+      <div style={fieldContainerStyles}>
         <label>{props.label}</label>
         <Field as="select" {...props}>
           <option value="">Choose one {props.label}</option>
@@ -40,52 +29,58 @@ const defaultDefinitionToComponent = (fieldDefinition, name) => {
             </option>
           ))}
         </Field>
-      </>
+      </div>
     );
   }
 
   switch (fieldDefinition.type) {
     case String:
       return props => (
-        <>
+        <div style={fieldContainerStyles}>
           <label>{props.label}</label>
           <Field type="text" {...props} />
-        </>
+          <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
+        </div>
       );
     case Number:
       return props => (
-        <>
+        <div style={fieldContainerStyles}>
           <label>{props.label}</label>
           <Field type="number" {...props} />
-        </>
+          <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
+        </div>
       );
     case SimpleSchema.Integer:
       return props => (
-        <>
+        <div style={fieldContainerStyles}>
           <label>{props.label}</label>
           <Field type="number" step={1} {...props} />
-        </>
+          <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
+        </div>
       );
     case Boolean:
       return props => (
-        <div>
+        <div style={{ ...fieldContainerStyles, display: 'block' }}>
           <Field type="checkbox" {...props} />
           <label>{props.label}</label>
+          <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
         </div>
       );
-    case Date:
+    case DateTimeType:
       return props => (
-        <>
+        <div style={fieldContainerStyles}>
           <label>{props.label}</label>
           <Field type="date" {...props} />
-        </>
+          <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
+        </div>
       );
     default:
       return props => (
-        <>
+        <div style={fieldContainerStyles}>
           <label>{props.label}</label>
           <Field type="text" {...props} />
-        </>
+          <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
+        </div>
       );
   }
 };
@@ -104,8 +99,6 @@ const defaultValidate = (simpleSchema, fields) => values => {
       .filter(([, message]) => Boolean(message))
   );
 };
-
-const DefaultSubmitComponent = props => <button {...props} />;
 
 const defaultOnSubmit = values =>
   console.warn('No onSubmit implemented', values);
@@ -158,16 +151,7 @@ const DebugComponent = () => {
   );
 };
 
-const Actions = ({
-  initialValues,
-  actions,
-  submitComponent: SubmitComponent,
-  style,
-  className,
-  submitLabel,
-  hideSubmit,
-  submitDisabled,
-}) => {
+const Actions = ({ initialValues, actions }) => {
   const rawFormikContext = useFormikContext();
   const formikContext = {
     ...rawFormikContext,
@@ -175,15 +159,10 @@ const Actions = ({
   };
 
   return (
-    <div
-      style={
-        className ? undefined : { ...defaultStyles.actionsContainer, ...style }
-      }
-      className={className}
-    >
+    <>
       {actions.map(
         ({ label, handler, shouldRender, disabled, component, ...props }) => {
-          const Component = component || SubmitComponent;
+          const Component = component || 'button';
 
           if (shouldRender && !shouldRender(formikContext)) {
             return null;
@@ -194,11 +173,7 @@ const Actions = ({
           ) : (
             <Component
               key={`quaveform-action-${label}`}
-              onClick={e => {
-                e.preventDefault();
-                // eslint-disable-next-line no-unused-expressions
-                handler?.(formikContext, e);
-              }}
+              onClick={event => handler?.(formikContext, event)}
               disabled={
                 typeof disabled === 'function'
                   ? disabled(formikContext)
@@ -211,97 +186,18 @@ const Actions = ({
           );
         }
       )}
-
-      {!hideSubmit &&
-        (React.isValidElement(SubmitComponent) ? (
-          SubmitComponent
-        ) : (
-          <SubmitComponent
-            type="submit"
-            disabled={
-              formikContext.isSubmitting ||
-              (typeof submitDisabled === 'function'
-                ? submitDisabled(formikContext)
-                : submitDisabled)
-            }
-          >
-            {submitLabel}
-          </SubmitComponent>
-        ))}
-    </div>
+    </>
   );
 };
 
 const FormContext = React.createContext({});
 FormContext.displayName = 'FormContext';
 
-/**
- * Provider to set default values to all forms that are children of it
- * @param definitionToComponent
- * @param fieldContainerStyle
- * @param fieldContainerClassName
- * @param actionsContainerStyle
- * @param actionsContainerClassName
- * @param isDebug
- * @param className
- * @param style
- * @param submitLabel
- * @param submitDisabled
- * @param submitComponent
- * @param actions
- * @param validate
- * @param autoValidate
- * @param autoClean
- * @param defaultMessages
- * @param children
- * @returns {JSX.Element}
- * @constructor
- */
-export const FormProvider = ({
-  definitionToComponent,
-  fieldContainerStyle,
-  fieldContainerClassName,
-  actionsContainerStyle,
-  actionsContainerClassName,
-  isDebug = false,
-  className,
-  style,
-  submitLabel,
-  submitDisabled,
-  submitComponent,
-  actions,
-  validate,
-  autoValidate,
-  autoClean,
-  defaultMessages = {},
-  children,
-}) => {
+export const FormProvider = ({ defaultMessages, children, ...rest }) => {
   // More about this here: https://github.com/aldeed/simpl-schema#customizing-validation-messages
   SimpleSchema.setDefaultMessages(defaultMessages);
 
-  return (
-    <FormContext.Provider
-      value={{
-        definitionToComponent,
-        fieldContainerStyle,
-        fieldContainerClassName,
-        actionsContainerStyle,
-        actionsContainerClassName,
-        isDebug,
-        className,
-        style,
-        submitLabel,
-        submitDisabled,
-        submitComponent,
-        actions,
-        validate,
-        autoValidate,
-        autoClean,
-      }}
-    >
-      {children}
-    </FormContext.Provider>
-  );
+  return <FormContext.Provider value={rest}>{children}</FormContext.Provider>;
 };
 
 const mergeClassNames = (...args) => args.filter(Boolean).join(' ');
@@ -332,133 +228,70 @@ const pickOrOmit = (rawFields, pickFields, omitFields) => {
   return rawFields;
 };
 
-const Generate = ({ generate }) => {
+// const Generate = ({ generate }) => {
+//   const formikContext = useFormikContext();
+//
+//   useEffect(() => {
+//     // We have to use an IIFE because we can't return a promise inside useEffect
+//     // and I want to accept non async functions as well, so "then" wouldn't work
+//     (async () => {
+//       const values = await generate();
+//       formikContext.setValues({
+//         ...formikContext.initialValues,
+//         ...formikContext.values,
+//         ...values
+//       });
+//     })();
+//   }, []);
+//
+//   return null;
+// };
+
+const Fields = ({ fields, definitionToComponent }) => {
   const formikContext = useFormikContext();
 
-  useEffect(() => {
-    // We have to use an IIFE because we can't return a promise inside useEffect
-    // and I want to accept non async functions as well, so "then" wouldn't work
-    (async () => {
-      const values = await generate();
-      formikContext.setValues({
-        ...formikContext.initialValues,
-        ...formikContext.values,
-        ...values,
-      });
-    })();
-  }, []);
+  return (
+    <>
+      {Object.entries(fields).map(([name, fieldDefinition]) => {
+        const Component = definitionToComponent({
+          fieldDefinition,
+          name,
+          formikContext,
+        });
 
-  return null;
+        return React.isValidElement(Component) ? (
+          Component
+        ) : (
+          <Component
+            key={`quaveform-${name}`}
+            name={name}
+            label={fieldDefinition.label}
+          />
+        );
+      })}
+    </>
+  );
 };
 
-const FormikContextLoad = ({ onFormikContext }) => {
-  const formikContext = useFormikContext();
-
-  useEffect(() => {
-    onFormikContext(formikContext);
-  }, []);
-
-  return null;
-};
-
-const Fields = ({
-  fields,
-  fieldContainerClassName,
-  fieldContainerStyle,
-  definitionToComponent,
-}) => (
-  <>
-    {Object.entries(fields).map(([name, fieldDefinition]) => {
-      const Component = definitionToComponent(fieldDefinition, name);
-
-      return (
-        <div
-          key={`quaveform-${name}-${Math.random()}`}
-          style={
-            fieldContainerClassName
-              ? undefined
-              : {
-                  ...defaultStyles.fieldContainer,
-                  ...fieldContainerStyle,
-                }
-          }
-          className={fieldContainerClassName}
-        >
-          {React.isValidElement(Component) ? (
-            Component
-          ) : (
-            <Component
-              key={`quaveform-${name}`}
-              name={name}
-              label={fieldDefinition.label}
-            />
-          )}
-        </div>
-      );
-    })}
-  </>
-);
-
-/**
- * Create a form automatically passing it's definition.
- * @param props.initialValues
- * @param props.clipValues - Clear all fields not present in the definition provided
- * @param props.definition
- * @param props.fields
- * @param props.omitFields
- * @param props.pickFields
- * @param props.onSubmit
- * @param props.onClick
- * @param props.submitLabel
- * @param props.submitDisabled
- * @param props.definitionToComponent
- * @param props.submitComponent
- * @param props.actions
- * @param props.validate
- * @param props.autoValidate
- * @param props.autoClean
- * @param props.style
- * @param props.className
- * @param props.fieldContainerStyle
- * @param props.fieldContainerClassName
- * @param props.actionsContainerStyle
- * @param props.actionsContainerClassName
- * @param props.customFormBody
- * @param props.isDebug
- * @param props
- * @returns {JSX.Element}
- * @constructor
- */
 export const Form = props => {
   const context = useContext(FormContext);
   const {
-    initialValues = {},
-    clipValues = false,
-    format,
     definition,
-    fields: fieldsInput,
-    generate,
     omitFields,
     pickFields,
-    onSubmit,
-    onClick,
-    onFormikContext,
-    submitLabel = 'SUBMIT',
-    submitDisabled = false,
-    hideSubmit = false,
-    definitionToComponent,
-    submitComponent = DefaultSubmitComponent,
-    actions = [],
     validate,
     autoValidate = true,
     autoClean = true,
-    style,
+    initialValues = {},
+    clipValues = false,
+
+    onSubmit,
+    onClick,
+
+    definitionToComponent,
+    actions,
+
     className,
-    fieldContainerStyle,
-    fieldContainerClassName,
-    actionsContainerStyle,
-    actionsContainerClassName,
-    customFormBody: CustomFormBody,
     isDebug = false,
     ...rest
   } = {
@@ -474,19 +307,12 @@ export const Form = props => {
     validate: (...args) =>
       props.validate?.(...args) || context.validate?.(...args),
 
+    actions: [...(context.actions || []), ...(props.actions || defaultActions)],
     className: mergeClassNames(props.className, context.className),
-    fieldContainerClassName: mergeClassNames(
-      context.fieldContainerClassName,
-      props.fieldContainerClassName
-    ),
-    actionsContainerClassName: mergeClassNames(
-      context.actionsContainerClassName,
-      props.actionsContainerClassName
-    ),
   };
 
   const simpleSchema = definition?.toSimpleSchema();
-  const rawFields = definition?.fields || fieldsInput;
+  const rawFields = definition?.fields;
   const fields = pickOrOmit(rawFields, pickFields, omitFields);
 
   return (
@@ -500,37 +326,9 @@ export const Form = props => {
       }
       {...rest}
     >
-      <FormikForm
-        style={className ? undefined : { ...defaultStyles.form, ...style }}
-        className={className}
-        onClick={onClick}
-      >
-        {CustomFormBody ? (
-          <CustomFormBody />
-        ) : (
-          <Fields
-            fields={fields}
-            fieldContainerClassName={fieldContainerClassName}
-            fieldContainerStyle={fieldContainerStyle}
-            definitionToComponent={definitionToComponent}
-          />
-        )}
-
-        {generate && <Generate generate={generate} />}
-        {onFormikContext && (
-          <FormikContextLoad onFormikContext={onFormikContext} />
-        )}
-
-        <Actions
-          style={actionsContainerStyle}
-          className={actionsContainerClassName}
-          actions={actions}
-          submitComponent={submitComponent}
-          submitLabel={submitLabel}
-          initialValues={initialValues}
-          hideSubmit={hideSubmit}
-          submitDisabled={submitDisabled}
-        />
+      <FormikForm className={className} onClick={onClick}>
+        <Fields fields={fields} definitionToComponent={definitionToComponent} />
+        <Actions actions={actions} initialValues={initialValues} />
 
         {isDebug && <DebugComponent />}
       </FormikForm>
