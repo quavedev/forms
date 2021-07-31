@@ -13,6 +13,8 @@ import { defaultValidate } from './defaultValidate';
 import { DebugComponent } from './DebugComponent';
 import { ELEMENT_KEY_PREFIX } from './constants';
 import { defaultActions } from './defaultActions';
+import { defaultParseValue } from './defaultParseValue';
+import { defaultStringifyValue } from './defaultStringifyValue';
 
 const FormContext = React.createContext({});
 FormContext.displayName = 'FormContext';
@@ -111,6 +113,14 @@ export const Form = props => {
       context.definitionToComponent ||
       defaultDefinitionToComponent,
     validate: props.validate || context.validate,
+    parseValue: (...args) =>
+      props.parseValue?.(...args) ??
+      context.parseValue?.(...args) ??
+      defaultParseValue(...args),
+    stringifyValue: (...args) =>
+      props.stringifyValue?.(...args) ??
+      context.stringifyValue?.(...args) ??
+      defaultStringifyValue(...args),
 
     actions: [...(context.actions || []), ...(props.actions || defaultActions)],
     className: mergeClassNames(props.className, context.className),
