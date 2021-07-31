@@ -84,7 +84,6 @@ export const Form = props => {
     definition,
     omitFields,
     pickFields,
-    disableFields,
     fieldsProps,
     validate,
     parseValue,
@@ -100,6 +99,7 @@ export const Form = props => {
     actions,
 
     className,
+    style,
     isDebug = false,
     ...rest
   } = {
@@ -175,7 +175,7 @@ export const Form = props => {
       validate={formikValidate}
       {...rest}
     >
-      <FormikForm className={className} onClick={onClick}>
+      <FormikForm className={className} style={style} onClick={onClick}>
         <Fields
           fieldsProps={fieldsProps}
           fieldsComponents={fieldsComponents}
