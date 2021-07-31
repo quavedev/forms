@@ -3,28 +3,34 @@ import React, { useContext } from 'react';
 import SimpleSchema from 'simpl-schema';
 import { DateTimeType } from 'meteor/quave:custom-type-date-time/DateTimeType';
 
-export const defaultActions = [{ label: 'submit', type: 'submit' }];
+const ELEMENT_KEY_PREFIX = 'quaveform';
+const fieldContainerStyles = {
+  display: 'flex',
+  flexDirection: 'column',
+  marginBottom: '1em',
+};
+
+export const defaultActions = [
+  props => (
+    <button type="submit" {...props}>
+      submit
+    </button>
+  ),
+];
 
 // Get's the field name and definition and returns a formik compatible field
-export const defaultDefinitionToComponent = ({
-  fieldDefinition,
-  name,
-  formikContext,
-}) => {
-  const fieldContainerStyles = {
-    display: 'flex',
-    flexDirection: 'column',
-    marginBottom: '1em',
-  };
-
+export const defaultDefinitionToComponent = ({ name, fieldDefinition }) => {
   if (fieldDefinition.allowedValues) {
-    return props => (
+    return ({ formikContext, ...props }) => (
       <div style={fieldContainerStyles}>
-        <label>{props.label}</label>
-        <Field as="select" {...props}>
-          <option value="">Choose one {props.label}</option>
+        <label>{fieldDefinition.label}</label>
+        <Field as="select" name={name} {...props}>
+          <option value="">Choose one {fieldDefinition.label}</option>
           {fieldDefinition.allowedValues.map(value => (
-            <option key={`quaveform-${name}-option-${value}`} value={value}>
+            <option
+              key={`${ELEMENT_KEY_PREFIX}-field-${name}-option-${value}`}
+              value={value}
+            >
               {value}
             </option>
           ))}
@@ -35,50 +41,50 @@ export const defaultDefinitionToComponent = ({
 
   switch (fieldDefinition.type) {
     case String:
-      return props => (
+      return ({ formikContext, ...props }) => (
         <div style={fieldContainerStyles}>
-          <label>{props.label}</label>
-          <Field type="text" {...props} />
+          <label>{fieldDefinition.label}</label>
+          <Field type="text" name={name} {...props} />
           <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
         </div>
       );
     case Number:
-      return props => (
+      return ({ formikContext, ...props }) => (
         <div style={fieldContainerStyles}>
-          <label>{props.label}</label>
-          <Field type="number" {...props} />
+          <label>{fieldDefinition.label}</label>
+          <Field type="number" name={name} {...props} />
           <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
         </div>
       );
     case SimpleSchema.Integer:
-      return props => (
+      return ({ formikContext, ...props }) => (
         <div style={fieldContainerStyles}>
-          <label>{props.label}</label>
-          <Field type="number" step={1} {...props} />
+          <label>{fieldDefinition.label}</label>
+          <Field type="number" step={1} name={name} {...props} />
           <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
         </div>
       );
     case Boolean:
-      return props => (
+      return ({ formikContext, ...props }) => (
         <div style={{ ...fieldContainerStyles, display: 'block' }}>
-          <Field type="checkbox" {...props} />
-          <label>{props.label}</label>
+          <Field type="checkbox" name={name} {...props} />
+          <label>{fieldDefinition.label}</label>
           <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
         </div>
       );
     case DateTimeType:
-      return props => (
+      return ({ formikContext, ...props }) => (
         <div style={fieldContainerStyles}>
-          <label>{props.label}</label>
-          <Field type="date" {...props} />
+          <label>{fieldDefinition.label}</label>
+          <Field type="date" name={name} {...props} />
           <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
         </div>
       );
     default:
-      return props => (
+      return ({ formikContext, ...props }) => (
         <div style={fieldContainerStyles}>
-          <label>{props.label}</label>
-          <Field type="text" {...props} />
+          <label>{fieldDefinition.label}</label>
+          <Field type="text" name={name} {...props} />
           <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
         </div>
       );
@@ -151,43 +157,16 @@ const DebugComponent = () => {
   );
 };
 
-const Actions = ({ initialValues, actions }) => {
-  const rawFormikContext = useFormikContext();
-  const formikContext = {
-    ...rawFormikContext,
-    values: { ...initialValues, ...rawFormikContext.values },
-  };
+const Actions = ({ actions }) => {
+  return actions.map((component, index) => {
+    const Component = component || 'button';
 
-  return (
-    <>
-      {actions.map(
-        ({ label, handler, shouldRender, disabled, component, ...props }) => {
-          const Component = component || 'button';
-
-          if (shouldRender && !shouldRender(formikContext)) {
-            return null;
-          }
-
-          return React.isValidElement(Component) ? (
-            Component
-          ) : (
-            <Component
-              key={`quaveform-action-${label}`}
-              onClick={event => handler?.(formikContext, event)}
-              disabled={
-                typeof disabled === 'function'
-                  ? disabled(formikContext)
-                  : disabled
-              }
-              {...props}
-            >
-              {label}
-            </Component>
-          );
-        }
-      )}
-    </>
-  );
+    return React.isValidElement(Component) ? (
+      Component
+    ) : (
+      <Component key={`${ELEMENT_KEY_PREFIX}-action-${index}`} />
+    );
+  });
 };
 
 const FormContext = React.createContext({});
@@ -228,6 +207,7 @@ const pickOrOmit = (rawFields, pickFields, omitFields) => {
   return rawFields;
 };
 
+// TODO: Implement this so the initialValues can also be a function
 // const Generate = ({ generate }) => {
 //   const formikContext = useFormikContext();
 //
@@ -247,25 +227,17 @@ const pickOrOmit = (rawFields, pickFields, omitFields) => {
 //   return null;
 // };
 
-const Fields = ({ fields, definitionToComponent }) => {
+const Fields = ({ fieldsComponents, fieldsProps }) => {
   const formikContext = useFormikContext();
 
   return (
     <>
-      {Object.entries(fields).map(([name, fieldDefinition]) => {
-        const Component = definitionToComponent({
-          fieldDefinition,
-          name,
-          formikContext,
-        });
-
-        return React.isValidElement(Component) ? (
-          Component
-        ) : (
+      {fieldsComponents.map(({ Component, name }) => {
+        return (
           <Component
-            key={`quaveform-${name}`}
-            name={name}
-            label={fieldDefinition.label}
+            key={`${ELEMENT_KEY_PREFIX}-field-${name}`}
+            formikContext={formikContext}
+            {...(fieldsProps?.[name] || {})}
           />
         );
       })}
@@ -279,6 +251,8 @@ export const Form = props => {
     definition,
     omitFields,
     pickFields,
+    disableFields,
+    fieldsProps,
     validate,
     autoValidate = true,
     autoClean = true,
@@ -300,10 +274,10 @@ export const Form = props => {
     ...context,
     ...props,
 
-    definitionToComponent: (...args) =>
-      props.definitionToComponent?.(...args) ||
-      context.definitionToComponent?.(...args) ||
-      defaultDefinitionToComponent(...args),
+    definitionToComponent:
+      props.definitionToComponent ||
+      context.definitionToComponent ||
+      defaultDefinitionToComponent,
     validate: (...args) =>
       props.validate?.(...args) || context.validate?.(...args),
 
@@ -314,7 +288,16 @@ export const Form = props => {
   const simpleSchema = definition?.toSimpleSchema();
   const rawFields = definition?.fields;
   const fields = pickOrOmit(rawFields, pickFields, omitFields);
-
+  const fieldsComponents = Object.entries(fields).map(
+    ([name, fieldDefinition]) => ({
+      name,
+      Component: definitionToComponent({
+        name,
+        fields,
+        fieldDefinition,
+      }),
+    })
+  );
   return (
     <Formik
       initialValues={getInitialValues(initialValues, fields, clipValues)}
@@ -327,7 +310,11 @@ export const Form = props => {
       {...rest}
     >
       <FormikForm className={className} onClick={onClick}>
-        <Fields fields={fields} definitionToComponent={definitionToComponent} />
+        <Fields
+          fieldsProps={fieldsProps}
+          fieldsComponents={fieldsComponents}
+          definitionToComponent={definitionToComponent}
+        />
         <Actions actions={actions} initialValues={initialValues} />
 
         {isDebug && <DebugComponent />}
