@@ -1,8 +1,8 @@
 import { DateTimeType } from 'meteor/quave:custom-type-date-time/DateTimeType';
 import { DateTime } from 'meteor/quave:custom-type-date-time';
 
-export const defaultParseValue = (value, fieldDefinition) => {
-  switch (fieldDefinition?.type) {
+export const defaultParseValue = ({ value, definition }) => {
+  switch (definition?.type) {
     case DateTimeType:
       return DateTime.parseDate(value);
 

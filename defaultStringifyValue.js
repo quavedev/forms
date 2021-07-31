@@ -1,7 +1,7 @@
 import { DateTimeType } from 'meteor/quave:custom-type-date-time/DateTimeType';
 
-export const defaultStringifyValue = (value, fieldDefinition) => {
-  switch (fieldDefinition?.type) {
+export const defaultStringifyValue = ({ value, definition }) => {
+  switch (definition?.type) {
     case DateTimeType:
       return value ? value.formatDate() : value;
 

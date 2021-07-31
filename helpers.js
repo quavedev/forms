@@ -38,9 +38,12 @@ export const getInitialValues = ({
 }) => ({
   ...(clipValues ? {} : initialValues),
   ...Object.fromEntries(
-    Object.entries(fields).map(([name, fieldDefinition]) => {
-      const value = initialValues[name] ?? fieldDefinition.defaultvalue ?? '';
-      return [name, stringifyValue?.(value, fields[name]) || value];
+    Object.entries(fields).map(([key, fieldDefinition]) => {
+      const value = initialValues[key] ?? fieldDefinition.defaultvalue ?? '';
+      return [
+        key,
+        stringifyValue?.({ value, definition: fields[key], key }) || value,
+      ];
     })
   ),
 });
@@ -61,7 +64,7 @@ export const getOnSubmit = ({
   };
   const parsedValues = mapEntries(values, ([key, value]) => [
     key,
-    parseValue?.(value, fields[key]) || value,
+    parseValue?.({ value, definition: fields[key], key }) || value,
   ]);
 
   return onSubmit
