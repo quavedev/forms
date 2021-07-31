@@ -2,6 +2,7 @@ import { Field, Form as FormikForm, Formik, useFormikContext } from 'formik';
 import React, { useContext } from 'react';
 import SimpleSchema from 'simpl-schema';
 import { DateTimeType } from 'meteor/quave:custom-type-date-time/DateTimeType';
+import { mapEntries } from './helpers';
 
 const ELEMENT_KEY_PREFIX = 'quaveform';
 const fieldContainerStyles = {
@@ -91,13 +92,8 @@ export const defaultDefinitionToComponent = ({ name, fieldDefinition }) => {
   }
 };
 
-const defaultValidate = (simpleSchema, fields) => values => {
-  const validationContext = simpleSchema
-    .pick(...Object.keys(fields))
-    .newContext();
-
-  const cleanedValues = validationContext.clean(values);
-  validationContext.validate(cleanedValues);
+const defaultValidate = (values, { validationContext }) => {
+  validationContext.validate(values);
 
   return Object.fromEntries(
     Object.keys(values)
@@ -110,32 +106,43 @@ const defaultOnSubmit = values =>
   console.warn('No onSubmit implemented', values);
 
 // Get initial value from defaultValue if it's not present in initialValues
-const getInitialValues = (initialValues, fields, clipValues) => ({
+const getInitialValues = ({
+  initialValues,
+  fields,
+  clipValues,
+  stringifyValue,
+}) => ({
   ...(clipValues ? {} : initialValues),
   ...Object.fromEntries(
-    Object.entries(fields).map(([name, fieldDefinition]) => [
-      name,
-      initialValues[name] ?? fieldDefinition.defaultValue ?? '',
-    ])
+    Object.entries(fields).map(([name, fieldDefinition]) => {
+      const value = initialValues[name] ?? fieldDefinition.defaultvalue ?? '';
+      return [name, stringifyValue?.(value, fields[name]) || value];
+    })
   ),
 });
 
-const getOnSubmit = (
+const getOnSubmit = ({
   onSubmit,
   simpleSchema,
   autoClean,
-  initialValues
-) => async (rawValues, actions) => {
+  initialValues,
+  fields,
+  parseValue,
+}) => async (rawValues, actions) => {
   // We want to use clean to do conversions (e.g. date strings to Date), but
   // keep excess values passed
   const values = {
     ...initialValues,
     ...(simpleSchema && autoClean ? simpleSchema.clean(rawValues) : rawValues),
   };
+  const parsedValues = mapEntries(values, ([key, value]) => [
+    key,
+    parseValue?.(value, fields[key]) || value,
+  ]);
 
   return onSubmit
-    ? onSubmit(values, actions)
-    : defaultOnSubmit(values, actions);
+    ? onSubmit(parsedValues, actions)
+    : defaultOnSubmit(parsedValues, actions);
 };
 
 const DebugComponent = () => {
@@ -254,7 +261,8 @@ export const Form = props => {
     disableFields,
     fieldsProps,
     validate,
-    autoValidate = true,
+    parseValue,
+    stringifyValue,
     autoClean = true,
     initialValues = {},
     clipValues = false,
@@ -278,8 +286,7 @@ export const Form = props => {
       props.definitionToComponent ||
       context.definitionToComponent ||
       defaultDefinitionToComponent,
-    validate: (...args) =>
-      props.validate?.(...args) || context.validate?.(...args),
+    validate: props.validate || context.validate,
 
     actions: [...(context.actions || []), ...(props.actions || defaultActions)],
     className: mergeClassNames(props.className, context.className),
@@ -298,15 +305,40 @@ export const Form = props => {
       }),
     })
   );
+
+  const formikValidate = values => {
+    const validationContext = simpleSchema
+      ?.pick(...Object.keys(fields))
+      .newContext();
+    const cleanedValues =
+      simpleSchema && autoClean ? validationContext.clean(values) : values;
+    const parsedValues = mapEntries(cleanedValues, ([key, value]) => [
+      key,
+      parseValue?.(value, fields[key]) || value,
+    ]);
+
+    return validate
+      ? validate(parsedValues, { simpleSchema, validationContext })
+      : defaultValidate(parsedValues, { simpleSchema, validationContext });
+  };
+
   return (
     <Formik
-      initialValues={getInitialValues(initialValues, fields, clipValues)}
-      onSubmit={getOnSubmit(onSubmit, simpleSchema, autoClean, initialValues)}
-      validate={
-        autoValidate && simpleSchema
-          ? defaultValidate(simpleSchema, fields)
-          : validate
-      }
+      initialValues={getInitialValues({
+        initialValues,
+        fields,
+        clipValues,
+        stringifyValue,
+      })}
+      onSubmit={getOnSubmit({
+        onSubmit,
+        simpleSchema,
+        autoClean,
+        initialValues,
+        fields,
+        parseValue,
+      })}
+      validate={formikValidate}
       {...rest}
     >
       <FormikForm className={className} onClick={onClick}>
