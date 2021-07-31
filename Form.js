@@ -1,180 +1,18 @@
-import { Field, Form as FormikForm, Formik, useFormikContext } from 'formik';
+import { Form as FormikForm, Formik, useFormikContext } from 'formik';
 import React, { useContext } from 'react';
 import SimpleSchema from 'simpl-schema';
-import { DateTimeType } from 'meteor/quave:custom-type-date-time/DateTimeType';
-import { mapEntries } from './helpers';
-
-const ELEMENT_KEY_PREFIX = 'quaveform';
-const fieldContainerStyles = {
-  display: 'flex',
-  flexDirection: 'column',
-  marginBottom: '1em',
-};
-
-export const defaultActions = [
-  props => (
-    <button type="submit" {...props}>
-      submit
-    </button>
-  ),
-];
-
-// Get's the field name and definition and returns a formik compatible field
-export const defaultDefinitionToComponent = ({ name, fieldDefinition }) => {
-  if (fieldDefinition.allowedValues) {
-    return ({ formikContext, ...props }) => (
-      <div style={fieldContainerStyles}>
-        <label>{fieldDefinition.label}</label>
-        <Field as="select" name={name} {...props}>
-          <option value="">Choose one {fieldDefinition.label}</option>
-          {fieldDefinition.allowedValues.map(value => (
-            <option
-              key={`${ELEMENT_KEY_PREFIX}-field-${name}-option-${value}`}
-              value={value}
-            >
-              {value}
-            </option>
-          ))}
-        </Field>
-      </div>
-    );
-  }
-
-  switch (fieldDefinition.type) {
-    case String:
-      return ({ formikContext, ...props }) => (
-        <div style={fieldContainerStyles}>
-          <label>{fieldDefinition.label}</label>
-          <Field type="text" name={name} {...props} />
-          <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
-        </div>
-      );
-    case Number:
-      return ({ formikContext, ...props }) => (
-        <div style={fieldContainerStyles}>
-          <label>{fieldDefinition.label}</label>
-          <Field type="number" name={name} {...props} />
-          <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
-        </div>
-      );
-    case SimpleSchema.Integer:
-      return ({ formikContext, ...props }) => (
-        <div style={fieldContainerStyles}>
-          <label>{fieldDefinition.label}</label>
-          <Field type="number" step={1} name={name} {...props} />
-          <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
-        </div>
-      );
-    case Boolean:
-      return ({ formikContext, ...props }) => (
-        <div style={{ ...fieldContainerStyles, display: 'block' }}>
-          <Field type="checkbox" name={name} {...props} />
-          <label>{fieldDefinition.label}</label>
-          <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
-        </div>
-      );
-    case DateTimeType:
-      return ({ formikContext, ...props }) => (
-        <div style={fieldContainerStyles}>
-          <label>{fieldDefinition.label}</label>
-          <Field type="date" name={name} {...props} />
-          <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
-        </div>
-      );
-    default:
-      return ({ formikContext, ...props }) => (
-        <div style={fieldContainerStyles}>
-          <label>{fieldDefinition.label}</label>
-          <Field type="text" name={name} {...props} />
-          <span style={{ color: 'red' }}>{formikContext.errors?.[name]}</span>
-        </div>
-      );
-  }
-};
-
-const defaultValidate = (values, { validationContext }) => {
-  validationContext.validate(values);
-
-  return Object.fromEntries(
-    Object.keys(values)
-      .map(key => [key, validationContext.keyErrorMessage(key)])
-      .filter(([, message]) => Boolean(message))
-  );
-};
-
-const defaultOnSubmit = values =>
-  console.warn('No onSubmit implemented', values);
-
-// Get initial value from defaultValue if it's not present in initialValues
-const getInitialValues = ({
-  initialValues,
-  fields,
-  clipValues,
-  stringifyValue,
-}) => ({
-  ...(clipValues ? {} : initialValues),
-  ...Object.fromEntries(
-    Object.entries(fields).map(([name, fieldDefinition]) => {
-      const value = initialValues[name] ?? fieldDefinition.defaultvalue ?? '';
-      return [name, stringifyValue?.(value, fields[name]) || value];
-    })
-  ),
-});
-
-const getOnSubmit = ({
-  onSubmit,
-  simpleSchema,
-  autoClean,
-  initialValues,
-  fields,
-  parseValue,
-}) => async (rawValues, actions) => {
-  // We want to use clean to do conversions (e.g. date strings to Date), but
-  // keep excess values passed
-  const values = {
-    ...initialValues,
-    ...(simpleSchema && autoClean ? simpleSchema.clean(rawValues) : rawValues),
-  };
-  const parsedValues = mapEntries(values, ([key, value]) => [
-    key,
-    parseValue?.(value, fields[key]) || value,
-  ]);
-
-  return onSubmit
-    ? onSubmit(parsedValues, actions)
-    : defaultOnSubmit(parsedValues, actions);
-};
-
-const DebugComponent = () => {
-  const formikContext = useFormikContext();
-
-  return (
-    <pre
-      style={{
-        textAlign: 'left',
-        backgroundColor: '#eee',
-        padding: '1em',
-        gridColumn: '1/-1',
-        overflowX: 'scroll',
-        color: '#000',
-      }}
-    >
-      <code>{JSON.stringify(formikContext, null, 2)}</code>
-    </pre>
-  );
-};
-
-const Actions = ({ actions }) => {
-  return actions.map((component, index) => {
-    const Component = component || 'button';
-
-    return React.isValidElement(Component) ? (
-      Component
-    ) : (
-      <Component key={`${ELEMENT_KEY_PREFIX}-action-${index}`} />
-    );
-  });
-};
+import {
+  getInitialValues,
+  getOnSubmit,
+  mapEntries,
+  mergeClassNames,
+  pickOrOmit,
+} from './helpers';
+import { defaultDefinitionToComponent } from './defaultDefinitionToComponent';
+import { defaultValidate } from './defaultValidate';
+import { DebugComponent } from './DebugComponent';
+import { ELEMENT_KEY_PREFIX } from './constants';
+import { defaultActions } from './defaultActions';
 
 const FormContext = React.createContext({});
 FormContext.displayName = 'FormContext';
@@ -184,34 +22,6 @@ export const FormProvider = ({ defaultMessages, children, ...rest }) => {
   SimpleSchema.setDefaultMessages(defaultMessages);
 
   return <FormContext.Provider value={rest}>{children}</FormContext.Provider>;
-};
-
-const mergeClassNames = (...args) => args.filter(Boolean).join(' ');
-
-const pickOrOmit = (rawFields, pickFields, omitFields) => {
-  if (pickFields?.length) {
-    const picked = pickFields.reduce(
-      (acc, fieldName) => ({
-        ...acc,
-        [fieldName]: rawFields[fieldName] || null,
-      }),
-      {}
-    );
-    if (Object.values(picked).includes(null)) {
-      throw Error(`Unable to pick value from fields: ${pickFields}`);
-    }
-    return picked;
-  }
-
-  if (omitFields?.length) {
-    const mutatedFields = { ...rawFields };
-    omitFields.forEach(fieldName => {
-      delete mutatedFields[fieldName];
-    });
-    return mutatedFields;
-  }
-
-  return rawFields;
 };
 
 // TODO: Implement this so the initialValues can also be a function
@@ -240,9 +50,11 @@ const Fields = ({ fieldsComponents, fieldsProps }) => {
   return (
     <>
       {fieldsComponents.map(({ Component, name }) => {
+        const className = `${ELEMENT_KEY_PREFIX}-field-${name}`;
         return (
           <Component
-            key={`${ELEMENT_KEY_PREFIX}-field-${name}`}
+            key={className}
+            className={className}
             formikContext={formikContext}
             {...(fieldsProps?.[name] || {})}
           />
@@ -250,6 +62,18 @@ const Fields = ({ fieldsComponents, fieldsProps }) => {
       })}
     </>
   );
+};
+
+const Actions = ({ actions }) => {
+  return actions.map((component, index) => {
+    const Component = component || 'button';
+
+    return React.isValidElement(Component) ? (
+      Component
+    ) : (
+      <Component key={`${ELEMENT_KEY_PREFIX}-action-${index}`} />
+    );
+  });
 };
 
 export const Form = props => {
