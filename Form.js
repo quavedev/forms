@@ -146,9 +146,10 @@ export const Form = props => {
       .newContext();
     const cleanedValues =
       simpleSchema && autoClean ? validationContext.clean(values) : values;
+
     const parsedValues = mapEntries(cleanedValues, ([key, value]) => [
       key,
-      parseValue?.(value, fields[key]) || value,
+      parseValue?.({ value, definition: fields[key] }) || value,
     ]);
 
     return validate
