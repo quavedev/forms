@@ -1,7 +1,7 @@
 /* global Package */
 Package.describe({
   name: 'quave:forms',
-  version: '3.0.2',
+  version: '3.0.3',
   summary: 'Create Formik forms automatically from a quave:definition object.',
   git: 'https://github.com/quavedev/forms',
 });
