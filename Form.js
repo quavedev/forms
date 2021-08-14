@@ -78,6 +78,30 @@ const Actions = ({ actions }) => {
   });
 };
 
+/**
+ * @param {object} props
+ * @param {object} props.definition
+ * @param {array} props.omitFields
+ * @param {array} props.pickFields
+ * @param {object} props.fieldsProps
+ * @param {function} props.validate
+ * @param {function} props.parseValue
+ * @param {function} props.stringifyValue
+ * @param {boolean} props.autoClean
+ * @param {object} props.initialValues
+ * @param {boolean} props.clipValues
+ * @param {function} props.onSubmit
+ * @param {function} props.onClick
+ * @param {function} props.definitionToComponent
+ * @param {array} props.actions
+ * @param {string} props.className
+ * @param {object} props.style
+ * @param {boolean} props.isDebug
+ * @param {object} props.formikProps
+ * @param {object} props.formikFormProps
+ * @returns {JSX.Element}
+ * @constructor
+ */
 export const Form = props => {
   const context = useContext(FormContext);
   const {
@@ -101,9 +125,11 @@ export const Form = props => {
     className,
     style,
     isDebug = false,
-    ...rest
+
+    formikProps,
+    formikFormProps,
   } = {
-    // I know this is ugly, but all it does is default to context then props,
+    // I know this is ugly, but all it does is default to props || context,
     // handling cases were we want to merge both instead of just replace
     ...context,
     ...props,
@@ -174,9 +200,14 @@ export const Form = props => {
         parseValue,
       })}
       validate={formikValidate}
-      {...rest}
+      {...formikProps}
     >
-      <FormikForm className={className} style={style} onClick={onClick}>
+      <FormikForm
+        className={className}
+        style={style}
+        onClick={onClick}
+        {...formikFormProps}
+      >
         <Fields
           fieldsProps={fieldsProps}
           fieldsComponents={fieldsComponents}

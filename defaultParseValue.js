@@ -2,7 +2,6 @@ import { DateTimeType } from 'meteor/quave:custom-type-date-time/DateTimeType';
 import { DateTime } from 'meteor/quave:custom-type-date-time';
 
 export const defaultParseValue = ({ value, definition }) => {
-  console.log('{ value, definition }', { value, definition });
   switch (definition?.type) {
     case DateTimeType:
       console.log('called defualt parse value for date');
