@@ -1,4 +1,4 @@
-import { Form as FormikForm, Formik, useFormikContext } from 'formik';
+import { Form as FormikForm, Formik } from 'formik';
 import React, { useContext } from 'react';
 import SimpleSchema from 'simpl-schema';
 import {
@@ -46,25 +46,17 @@ export const FormProvider = ({ defaultMessages, children, ...rest }) => {
 //   return null;
 // };
 
-const Fields = ({ fieldsComponents, fieldsProps }) => {
-  const formikContext = useFormikContext();
-
-  return (
-    <>
-      {fieldsComponents.map(({ Component, name }) => {
-        const className = `${ELEMENT_KEY_PREFIX}-field-${name}`;
-        return (
-          <Component
-            key={className}
-            className={className}
-            formikContext={formikContext}
-            {...(fieldsProps?.[name] || {})}
-          />
-        );
-      })}
-    </>
-  );
-};
+const Fields = ({ fieldsComponents, fieldsProps }) =>
+  fieldsComponents.map(({ Component, name }) => {
+    const className = `${ELEMENT_KEY_PREFIX}-field-${name}`;
+    return (
+      <Component
+        key={className}
+        className={className}
+        {...(fieldsProps?.[name] || {})}
+      />
+    );
+  });
 
 const Actions = ({ actions }) => {
   return actions.map((component, index) => {
